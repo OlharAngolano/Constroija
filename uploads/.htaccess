@@ -1,0 +1,8 @@
+# Desativar execução de scripts PHP no diretório de uploads
+<FilesMatch "\.(php|php5|php7|php8|phtml|pl|py|jsp|asp|sh|cgi)$">
+    ForceType text/plain
+    Deny from all
+</FilesMatch>
+
+# Impedir listagem de diretórios
+Options -Indexes

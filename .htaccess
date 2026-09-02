@@ -1,0 +1,139 @@
+# Constrói Já — Definições de Servidor Apache, Performance & Segurança
+
+# =================================================================
+# PERFORMANCE: Compressão GZIP (mod_deflate)
+# =================================================================
+<IfModule mod_deflate.c>
+    # Comprimir HTML, CSS, JavaScript, JSON, XML, SVG, fontes
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE application/font-woff
+    AddOutputFilterByType DEFLATE application/font-woff2
+    AddOutputFilterByType DEFLATE font/woff
+    AddOutputFilterByType DEFLATE font/woff2
+    AddOutputFilterByType DEFLATE application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE font/ttf
+    AddOutputFilterByType DEFLATE font/otf
+    AddOutputFilterByType DEFLATE text/plain
+
+    # Não comprimir imagens já comprimidas (JPEG, PNG, GIF, WebP)
+    SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|webp|ico)$ no-gzip
+</IfModule>
+
+# =================================================================
+# PERFORMANCE: Cache do Browser (mod_expires)
+# =================================================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # HTML — cache curto (5 minutos) para conteúdo dinâmico
+    ExpiresByType text/html "access plus 5 minutes"
+
+    # CSS & JavaScript — cache longo (1 ano, invalidado pelo cache buster ?v=)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+
+    # Imagens — cache longo (6 meses)
+    ExpiresByType image/jpeg "access plus 6 months"
+    ExpiresByType image/png "access plus 6 months"
+    ExpiresByType image/gif "access plus 6 months"
+    ExpiresByType image/webp "access plus 6 months"
+    ExpiresByType image/svg+xml "access plus 6 months"
+    ExpiresByType image/x-icon "access plus 1 year"
+
+    # Fontes — cache longo (1 ano)
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+
+    # JSON & XML — cache curto
+    ExpiresByType application/json "access plus 0 seconds"
+    ExpiresByType application/xml "access plus 0 seconds"
+</IfModule>
+
+# Cache-Control headers adicionais
+<IfModule mod_headers.c>
+    # Assets estáticos: cache imutável com cache buster
+    <FilesMatch "\.(css|js|woff|woff2|ttf|otf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # Imagens: cache longo
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=15552000"
+    </FilesMatch>
+
+    # HTML/PHP: sem cache estático
+    <FilesMatch "\.(php|html)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+
+    # Remover header de versão do servidor (segurança)
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+
+# =================================================================
+# SEGURANÇA: Configurações de Base
+# =================================================================
+
+# 1. Impedir listagem de diretórios
+Options -Indexes
+
+# 2. Desativar a adição automática de barras finais pelo Apache (mod_dir)
+DirectorySlash Off
+
+# 3. Definir limite de upload no Apache para 10MB
+LimitRequestBody 10485760
+
+# 4. Bloquear leitura direta de ficheiros confidenciais (.env, .git, .htaccess)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 5. Bloquear ficheiros de base de dados, logs e documentação sensível
+<FilesMatch "\.(sql|log|ini|md|env)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 6. Bloquear acesso a pastas confidenciais internas
+RedirectMatch 403 ^/(config|includes|logs|scratch)(/|$)
+
+# =================================================================
+# MOTOR DE REESCRITA (URL Routing)
+# =================================================================
+RewriteEngine On
+
+# 7. Impedir execução de scripts PHP na pasta de uploads
+RewriteCond %{REQUEST_URI} ^/uploads/.*\.php$ [NC]
+RewriteRule .* - [F]
+
+# 8. Reescrita de URLs amigáveis para index.php (Front Controller)
+#    Exclui APENAS ficheiros reais existentes (CSS, JS, imagens, uploads)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ index.php [QSA,L]
