@@ -96,9 +96,11 @@ async function handleLogin() {
             remember_me: remember
         });
 
-        // Verificar se há redirecionamento especial (ex: conta suspensa → subscrição)
-        const redirectUrl = response.redirect || '/feed';
-        const toastType = response.redirect ? 'warning' : 'success';
+        // Os dados da API ficam dentro de `data` (incluindo o redireccionamento
+        // especial de contas suspensas).
+        const result = response.data || {};
+        const redirectUrl = result.redirect || '/feed';
+        const toastType = result.redirect ? 'warning' : 'success';
         
         App.showToast(response.message || 'Sessão iniciada com sucesso!', toastType);
         

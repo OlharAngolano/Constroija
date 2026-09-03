@@ -249,13 +249,19 @@ function current_uri(): string {
  * Obtém parâmetros de entrada de forma segura (limpa do GET, POST ou JSON payload)
  */
 function input(string $key, mixed $default = null): mixed {
+    // Passwords são credenciais, não conteúdo HTML: não as transforme com
+    // htmlspecialchars(), pois isso altera passwords que contenham <, > ou aspas.
+    $clean = static function (mixed $value) use ($key): mixed {
+        return $key === 'password' ? $value : Security::cleanInput($value);
+    };
+
     // Tenta obter do POST
     if (isset($_POST[$key])) {
-        return Security::cleanInput($_POST[$key]);
+        return $clean($_POST[$key]);
     }
     // Tenta obter do GET
     if (isset($_GET[$key])) {
-        return Security::cleanInput($_GET[$key]);
+        return $clean($_GET[$key]);
     }
     
     // Tenta obter do JSON raw body
@@ -266,7 +272,7 @@ function input(string $key, mixed $default = null): mixed {
     }
     
     if (isset($jsonData[$key])) {
-        return Security::cleanInput($jsonData[$key]);
+        return $clean($jsonData[$key]);
     }
     
     return $default;
