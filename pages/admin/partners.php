@@ -157,7 +157,7 @@ require_once __DIR__ . '/../../templates/header.php';
 
     <!-- Barra de Acção -->
     <div style="display:flex; justify-content:flex-end;">
-        <button onclick="openCreatePartnerModal();" class="btn btn-primary" style="font-size:13px; padding: 10px 20px;">
+        <button  data-jsaction="openCreatePartnerModal" class="btn btn-primary" style="font-size:13px; padding: 10px 20px;">
             <i data-lucide="plus-circle" style="width:16px; height:16px;"></i>
             Adicionar Parceiro B2B
         </button>
@@ -195,7 +195,7 @@ require_once __DIR__ . '/../../templates/header.php';
                             <tr style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
                                 <td data-label="Marca" style="padding: 12px; font-weight: 600;">
                                     <div style="display:flex; align-items:center; gap:10px;">
-                                        <img src="<?php echo sanitize($partner['logo']); ?>" style="width:36px; height:36px; border-radius:8px; object-fit:cover; border:1px solid var(--border-color);" onerror="this.src='https://images.unsplash.com/photo-1581094288338-2314dddb7eed?w=80';">
+                                        <img src="<?php echo sanitize($partner['logo']); ?>" style="width:36px; height:36px; border-radius:8px; object-fit:cover; border:1px solid var(--border-color);"  data-jsaction="__imgfallback__" data-fallback="https://images.unsplash.com/photo-1581094288338-2314dddb7eed?w=80">
                                         <div>
                                             <span style="color:var(--text-primary); font-weight:700; display:block;"><?php echo sanitize($partner['name']); ?></span>
                                             <small style="color:var(--text-muted); font-size:10px;">ID: #<?php echo $partner['id']; ?></small>
@@ -228,10 +228,10 @@ require_once __DIR__ . '/../../templates/header.php';
                                 </td>
                                 <td data-label="Ações" style="padding: 12px; text-align: right;">
                                     <div style="display:flex; justify-content:flex-end; gap:8px;">
-                                        <button onclick="openEditPartnerModal(<?php echo sanitize(json_encode($partner)); ?>);" class="btn btn-secondary" style="font-size:12px; padding:6px 10px;" title="Editar">
+                                        <button  data-jsaction="openEditPartnerModal" data-jsarg="<?php echo sanitize(json_encode($partner)); ?>" class="btn btn-secondary" style="font-size:12px; padding:6px 10px;" title="Editar">
                                             <i data-lucide="edit-2" style="width:14px; height:14px; color:var(--accent-secondary);"></i>
                                         </button>
-                                        <button onclick="deletePartner(<?php echo $partner['id']; ?>, '<?php echo sanitize(addslashes($partner['name'])); ?>');" class="btn btn-secondary" style="font-size:12px; padding:6px 10px; background:rgba(239,68,68,0.05); border-color:rgba(239,68,68,0.1);" title="Excluir">
+                                        <button  data-jsaction="deletePartner" data-jsarg="<?php echo (int)$partner['id']; ?>" data-jsarg2="<?php echo sanitize($partner['name']); ?>" class="btn btn-secondary" style="font-size:12px; padding:6px 10px; background:rgba(239,68,68,0.05); border-color:rgba(239,68,68,0.1);" title="Excluir">
                                             <i data-lucide="trash-2" style="width:14px; height:14px; color:var(--accent-danger);"></i>
                                         </button>
                                     </div>
@@ -253,10 +253,10 @@ require_once __DIR__ . '/../../templates/header.php';
                 <i data-lucide="plus-circle" style="color:var(--accent-primary);"></i>
                 Adicionar Marca Parceira B2B
             </h3>
-            <i class="modal-close" data-lucide="x" onclick="App.hideModal('create-partner-modal');"></i>
+            <i class="modal-close" data-lucide="x"  data-jsaction="App.hideModal" data-jsarg="create-partner-modal"></i>
         </div>
         
-        <form id="create-partner-form" onsubmit="event.preventDefault(); submitCreatePartner();">
+        <form id="create-partner-form"  data-jsaction="submitCreatePartner" data-jsprevent="1">
             <div style="display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:16px;">
                 <div class="form-group">
                     <label for="create-partner-name" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text-primary);">Nome do Fornecedor / Marca *</label>
@@ -304,7 +304,7 @@ require_once __DIR__ . '/../../templates/header.php';
             </div>
 
             <div class="modal-footer-buttons" style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
-                <button type="button" class="btn btn-secondary" onclick="App.hideModal('create-partner-modal');">Cancelar</button>
+                <button type="button" class="btn btn-secondary"  data-jsaction="App.hideModal" data-jsarg="create-partner-modal">Cancelar</button>
                 <button type="submit" id="create-partner-submit" class="btn btn-primary" style="padding: 10px 24px;">
                     Registrar Parceiro
                 </button>
@@ -321,10 +321,10 @@ require_once __DIR__ . '/../../templates/header.php';
                 <i data-lucide="edit-3" style="color:var(--accent-secondary);"></i>
                 Editar Parceiro B2B
             </h3>
-            <i class="modal-close" data-lucide="x" onclick="App.hideModal('edit-partner-modal');"></i>
+            <i class="modal-close" data-lucide="x"  data-jsaction="App.hideModal" data-jsarg="edit-partner-modal"></i>
         </div>
         
-        <form id="edit-partner-form" onsubmit="event.preventDefault(); submitEditPartner();">
+        <form id="edit-partner-form"  data-jsaction="submitEditPartner" data-jsprevent="1">
             <input type="hidden" id="edit-partner-id">
             
             <div style="display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:16px;">
@@ -374,7 +374,7 @@ require_once __DIR__ . '/../../templates/header.php';
             </div>
 
             <div class="modal-footer-buttons" style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-color); padding-top:16px;">
-                <button type="button" class="btn btn-secondary" onclick="App.hideModal('edit-partner-modal');">Cancelar</button>
+                <button type="button" class="btn btn-secondary"  data-jsaction="App.hideModal" data-jsarg="edit-partner-modal">Cancelar</button>
                 <button type="submit" id="edit-partner-submit" class="btn btn-primary" style="padding: 10px 24px;">
                     Salvar Alterações
                 </button>

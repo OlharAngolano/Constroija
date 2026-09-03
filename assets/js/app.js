@@ -246,7 +246,7 @@ const App = {
             return `
                 <span class="post-content-short">${this.renderHashtags(shortEscaped)}</span>
                 <span class="post-content-full" style="display:none;">${this.renderHashtags(fullEscaped)}</span>
-                <button onclick="App.Feed.toggleReadMore(${postId})" class="read-more-btn" style="background:none; border:none; color:var(--accent-primary); font-weight:600; padding:0; margin-left:4px; cursor:pointer; font-size:14px; display:inline-block; vertical-align:baseline;">... Ver mais</button>
+                <button data-jsaction="App.Feed.toggleReadMore" data-jsarg="${postId}" class="read-more-btn" style="background:none; border:none; color:var(--accent-primary); font-weight:600; padding:0; margin-left:4px; cursor:pointer; font-size:14px; display:inline-block; vertical-align:baseline;">... Ver mais</button>
             `;
         },
 
@@ -274,7 +274,7 @@ const App = {
             if (!html) return '';
             const hashtagRegex = /(^|\s)#([a-zA-Z0-9_À-ÿ]+)/g;
             return html.replace(hashtagRegex, (match, space, tag) => {
-                return `${space}<span onclick="event.stopPropagation(); App.Feed.setSearchQuery('#${tag}')" style="color:var(--accent-primary); cursor:pointer; font-weight:600; text-decoration:none;" class="hashtag-link">#${tag}</span>`;
+                return `${space}<span data-jsaction="App.Feed.setSearchQuery" data-jsarg="#${tag}" data-jsstop="1" style="color:var(--accent-primary); cursor:pointer; font-weight:600; text-decoration:none;" class="hashtag-link">#${tag}</span>`;
             });
         },
 
@@ -416,11 +416,11 @@ const App = {
                     <video id="video-el-${post.id}" class="reel-video-element" style="width:100%; height:100%; object-fit:cover;" loop playsinline data-qualities='${JSON.stringify(q || {})}'>
                         <source src="${App.url}/${defaultUrl}" type="${post.file_type}">
                     </video>
-                    <div onclick="App.Feed.togglePlayReel(${post.id})" style="position:absolute; inset:0; cursor:pointer; z-index:2;"></div>
+                    <div data-jsaction="App.Feed.togglePlayReel" data-jsarg="${post.id}" style="position:absolute; inset:0; cursor:pointer; z-index:2;"></div>
                     
                     <div style="position:absolute; top:15px; right:15px; z-index:10; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:4px; font-size:12px; color:#fff; display:flex; align-items:center; gap:4px;">
                         <i data-lucide="settings" style="width:12px; height:12px;"></i>
-                        <select onchange="App.Feed.changeVideoQuality(${post.id}, this.value)" style="background:none; border:none; color:#fff; font-size:12px; font-weight:700; cursor:pointer; outline:none;" id="video-quality-select-${post.id}">
+                        <select data-jsaction="App.Feed.changeVideoQuality" data-jsarg="${post.id}" data-jsarg2="__value__" style="background:none; border:none; color:#fff; font-size:12px; font-weight:700; cursor:pointer; outline:none;" id="video-quality-select-${post.id}">
                             ${options}
                         </select>
                     </div>
@@ -450,12 +450,12 @@ const App = {
                 </div>
                 
                 <div style="position:absolute; right:15px; bottom:120px; z-index:6; display:flex; flex-direction:column; gap:16px; align-items:center;">
-                    <button onclick="App.Feed.toggleLikeReel(${post.id})" id="like-btn-reel-${post.id}" style="background:rgba(0,0,0,0.5); border:none; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:${likeColor}; cursor:pointer; transition:scale 0.2s;">
+                    <button data-jsaction="App.Feed.toggleLikeReel" data-jsarg="${post.id}" id="like-btn-reel-${post.id}" style="background:rgba(0,0,0,0.5); border:none; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:${likeColor}; cursor:pointer; transition:scale 0.2s;">
                         <i data-lucide="heart" style="width:20px; height:20px; fill:${likeFill};"></i>
                     </button>
                     <span id="like-count-reel-${post.id}" style="font-size:11px; color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,0.8); margin-top:-10px;">${post.likes_count || 0}</span>
                     
-                    <button onclick="App.Feed.openReelComments(${post.id})" style="background:rgba(0,0,0,0.5); border:none; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer;">
+                    <button data-jsaction="App.Feed.openReelComments" data-jsarg="${post.id}" style="background:rgba(0,0,0,0.5); border:none; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer;">
                         <i data-lucide="message-circle" style="width:20px; height:20px;"></i>
                     </button>
                     <span style="font-size:11px; color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,0.8); margin-top:-10px;">${post.comments_count || 0}</span>
@@ -535,12 +535,12 @@ const App = {
                 <div style="background:var(--bg-secondary); border-top-left-radius:16px; border-top-right-radius:16px; width:100%; max-width:480px; height:80vh; display:flex; flex-direction:column; padding:20px; box-shadow:0 -10px 30px rgba(0,0,0,0.5); transform:translateY(100%); transition:transform 0.3s ease;" id="reel-comments-content">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
                         <h4 style="margin:0; font-size:16px;">Comentários</h4>
-                        <button onclick="App.Feed.closeReelComments()" style="background:none; border:none; color:var(--text-primary); cursor:pointer;"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
+                        <button data-jsaction="App.Feed.closeReelComments" style="background:none; border:none; color:var(--text-primary); cursor:pointer;"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
                     </div>
                     <div id="reel-comments-list-${postId}" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
                         <div style="text-align:center; padding:20px; color:var(--text-muted);">A carregar...</div>
                     </div>
-                    <form onsubmit="event.preventDefault(); App.Feed.submitReelComment(${postId});" style="display:flex; gap:10px;">
+                    <form data-jsaction="App.Feed.submitReelComment" data-jsarg="${postId}" data-jsprevent="1" style="display:flex; gap:10px;">
                         <input type="text" id="reel-comment-input-${postId}" class="post-card-fb__comment-input" placeholder="Comente este reel..." required style="flex:1;">
                         <button type="submit" class="post-card-fb__comment-send"><i data-lucide="send" style="width:16px; height:16px;"></i></button>
                     </form>
@@ -715,7 +715,7 @@ const App = {
             let fileHTML = '';
             if (post.file_url) {
                 if (post.file_type && post.file_type.includes('image')) {
-                    fileHTML = `<img src="${App.url}/${post.file_url}" alt="Imagem do Post" class="post-card-fb__image" style="cursor:pointer;" onclick="App.Feed.openImageLightbox(this.src)">`;
+                    fileHTML = `<img src="${App.url}/${post.file_url}" alt="Imagem do Post" class="post-card-fb__image" style="cursor:pointer;" data-jsaction="App.Feed.openImageLightbox" data-jsarg="__src__">`;
                 } else if (post.file_type && post.file_type.includes('pdf')) {
                     fileHTML = `
                         <a href="${App.url}/${post.file_url}" target="_blank" class="post-card-fb__pdf">
@@ -749,7 +749,7 @@ const App = {
                                 </video>
                                 <div class="video-quality-hud" style="position:absolute; top:10px; right:10px; z-index:10; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:4px; font-size:12px; color:#fff; display:flex; align-items:center; gap:6px;">
                                     <i data-lucide="settings" style="width:12px; height:12px;"></i>
-                                    <select onchange="App.Feed.changeVideoQuality(${post.id}, this.value)" style="background:none; border:none; color:#fff; font-size:12px; font-weight:700; cursor:pointer; outline:none;" id="video-quality-select-${post.id}">
+                                    <select data-jsaction="App.Feed.changeVideoQuality" data-jsarg="${post.id}" data-jsarg2="__value__" style="background:none; border:none; color:#fff; font-size:12px; font-weight:700; cursor:pointer; outline:none;" id="video-quality-select-${post.id}">
                                         ${options}
                                     </select>
                                 </div>
@@ -785,14 +785,14 @@ const App = {
             const isOwner = App.userId && (parseInt(post.user_id) === parseInt(App.userId) || App.isAdmin);
             const menuHTML = isOwner ? `
                 <div class="post-card-fb__menu">
-                    <button onclick="App.Feed.togglePostMenu(${post.id})" class="post-card-fb__menu-btn" title="Opções">
+                    <button data-jsaction="App.Feed.togglePostMenu" data-jsarg="${post.id}" class="post-card-fb__menu-btn" title="Opções">
                         <i data-lucide="more-horizontal" style="width:20px; height:20px;"></i>
                     </button>
                     <div id="post-menu-${post.id}" class="post-card-fb__dropdown" style="display:none;">
-                        <button onclick="App.Feed.editPost(${post.id})">
+                        <button data-jsaction="App.Feed.editPost" data-jsarg="${post.id}">
                             <i data-lucide="edit-3" style="width:16px; height:16px;"></i> Editar publicação
                         </button>
-                        <button onclick="App.Feed.deletePost(${post.id})" style="color:var(--accent-danger);">
+                        <button data-jsaction="App.Feed.deletePost" data-jsarg="${post.id}" style="color:var(--accent-danger);">
                             <i data-lucide="trash-2" style="width:16px; height:16px;"></i> Eliminar publicação
                         </button>
                     </div>
@@ -818,11 +818,11 @@ const App = {
                     <span>${post.comments_count || 0} comentário(s)</span>
                 </div>
                 <div class="post-card-fb__actions">
-                    <button onclick="App.Feed.toggleLike(${post.id})" id="like-btn-${post.id}" class="post-card-fb__action-btn" style="color:${likeColor};">
+                    <button data-jsaction="App.Feed.toggleLike" data-jsarg="${post.id}" id="like-btn-${post.id}" class="post-card-fb__action-btn" style="color:${likeColor};">
                         <i data-lucide="thumbs-up" style="width:18px; height:18px; fill:${likeFill};"></i>
                         <span id="like-count-${post.id}">Gosto</span>
                     </button>
-                    <button onclick="document.getElementById('comments-section-${post.id}').style.display = 'block'" class="post-card-fb__action-btn">
+                    <button data-jsaction="__show__" data-jsarg="comments-section-${post.id}" class="post-card-fb__action-btn">
                         <i data-lucide="message-circle" style="width:18px; height:18px;"></i>
                         <span>Comentar</span>
                     </button>
@@ -840,7 +840,7 @@ const App = {
                             </div>
                         `).join('')}
                     </div>
-                    <form onsubmit="event.preventDefault(); App.Feed.submitComment(${post.id});" class="post-card-fb__comment-form">
+                    <form data-jsaction="App.Feed.submitComment" data-jsarg="${post.id}" data-jsprevent="1" class="post-card-fb__comment-form">
                         <input type="text" id="comment-input-${post.id}" class="post-card-fb__comment-input" placeholder="Escreva um comentário..." required>
                         <button type="submit" class="post-card-fb__comment-send"><i data-lucide="send" style="width:16px; height:16px;"></i></button>
                     </form>
@@ -959,7 +959,7 @@ const App = {
                 lightbox.id = 'feed-image-lightbox';
                 lightbox.className = 'lightbox-overlay';
                 lightbox.innerHTML = `
-                    <div class="lightbox-close-btn" onclick="App.Feed.closeImageLightbox()">
+                    <div class="lightbox-close-btn" data-jsaction="App.Feed.closeImageLightbox">
                         <i data-lucide="x" style="width:28px; height:28px; color:#ffffff;"></i>
                     </div>
                     <img id="lightbox-image" src="" alt="Imagem Ampliada">
@@ -1421,3 +1421,136 @@ document.addEventListener('DOMContentLoaded', () => {
     App.Search.init();
     App.Notifications.init();
 });
+
+/* =====================================================================
+ * (CJ-12) Ligações declarativas de eventos — sem handlers inline.
+ * A CSP (script-src sem 'unsafe-inline') bloqueia atributos on*; as ações
+ * são declaradas com data-jsaction e resolvidas aqui por DELEGAÇÃO, o que
+ * também cobre elementos criados dinamicamente.
+ *
+ * Ações especiais:
+ *   data-jsaction="__go__"           navega para data-jsarg/data-href
+ *   data-jsaction="__prevent__"      apenas cancela o comportamento padrão
+ *   data-jsaction="__select__"       seleciona o texto do campo
+ *   data-jsaction="__print__"        window.print()
+ *   data-jsaction="__imgfallback__"  troca imagem partida por data-fallback
+ *
+ * Funções: data-jsaction="NomeGlobal" ou "App.Metodo" (resolução por caminho).
+ * Argumentos: data-jsarg (com atalhos __value__/__element__), data-jsarg2,
+ * data-jselement (passa o elemento) e data-jsprevent (preventDefault).
+ * data-jsarg pode conter JSON ({...}/[...]) — é analisado automaticamente.
+ * ===================================================================== */
+(function () {
+    'use strict';
+
+    function resolveActionFn(name) {
+        var obj = window;
+        var parts = String(name).split('.');
+        for (var i = 0; i < parts.length; i++) {
+            if (obj == null) return null;
+            obj = obj[parts[i]];
+        }
+        return typeof obj === 'function' ? obj : null;
+    }
+
+    function parseActionArg(el, raw) {
+        if (raw === undefined || raw === null) return undefined;
+        if (raw === '__value__') return el.value;
+        if (raw === '__element__') return el;
+        if (raw === '__src__') return el.getAttribute('src') || el.src || '';
+        var v = String(raw).trim();
+        if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
+        if ((v.charAt(0) === '{' && v.charAt(v.length - 1) === '}') ||
+            (v.charAt(0) === '[' && v.charAt(v.length - 1) === ']')) {
+            try {
+                return JSON.parse(v);
+            } catch (err) {
+                return raw; // não é JSON válido — usa o texto original
+            }
+        }
+        return raw;
+    }
+
+    function runAction(el, event) {
+        var action = el.getAttribute('data-jsaction');
+        if (!action) return;
+        var prevent = function () {
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+        };
+
+        // Ações especiais integradas
+        if (action === '__go__') {
+            var goHref = el.getAttribute('data-jsarg') || el.getAttribute('data-href');
+            if (!goHref) return;
+            prevent();
+            window.location.href = goHref;
+            return;
+        }
+        if (action === '__prevent__') {
+            prevent();
+            return;
+        }
+        if (action === '__select__') {
+            if (typeof el.select === 'function') el.select();
+            return;
+        }
+        if (action === '__print__') {
+            window.print();
+            return;
+        }
+        if (action === '__show__') {
+            var targetId = el.getAttribute('data-jsarg');
+            if (targetId) {
+                var targetEl = document.getElementById(targetId);
+                if (targetEl) targetEl.style.display = 'block';
+            }
+            return;
+        }
+        if (action === '__imgfallback__') {
+            var fb = el.getAttribute('data-fallback');
+            if (fb && el.src !== fb) el.src = fb;
+            return;
+        }
+
+        var fn = resolveActionFn(action);
+        if (!fn) return;
+
+        if (el.hasAttribute('data-jsprevent')) prevent();
+        if (el.hasAttribute('data-jsstop') && event && typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
+        }
+
+        var hasArg = el.hasAttribute('data-jsarg');
+        var hasArg2 = el.hasAttribute('data-jsarg2');
+        var arg = parseActionArg(el, el.getAttribute('data-jsarg'));
+        var arg2 = parseActionArg(el, el.getAttribute('data-jsarg2'));
+        var passEl = el.hasAttribute('data-jselement');
+
+        if (hasArg && hasArg2) {
+            if (passEl) fn(arg, arg2, el); else fn(arg, arg2);
+        } else if (hasArg && passEl) {
+            fn(arg, el);
+        } else if (hasArg) {
+            fn(arg);
+        } else if (passEl) {
+            fn(el);
+        } else {
+            fn();
+        }
+    }
+
+    ['click', 'change', 'input', 'submit'].forEach(function (type) {
+        document.addEventListener(type, function (event) {
+            var target = event.target;
+            var el = target && typeof target.closest === 'function' ? target.closest('[data-jsaction]') : null;
+            if (el) runAction(el, event);
+        });
+    });
+
+    // 'error' não propaga: capturar em fase de captura (imagens partidas)
+    document.addEventListener('error', function (event) {
+        var target = event.target;
+        var el = target && typeof target.closest === 'function' ? target.closest('[data-jsaction]') : null;
+        if (el) runAction(el, event);
+    }, true);
+})();

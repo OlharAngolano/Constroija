@@ -135,6 +135,7 @@ require_once __DIR__ . '/../templates/header.php';
     .divider-line:not(:empty)::after {
         margin-left: .75em;
     }
+    .susp-logout-link:hover { color: var(--text-primary) !important; }
 </style>
 
 <div class="suspended-container">
@@ -174,7 +175,7 @@ require_once __DIR__ . '/../templates/header.php';
             </a>
         </div>
 
-        <a href="#" onclick="event.preventDefault(); App.logout();" style="color: var(--text-muted); font-size: 14px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">
+        <a href="#" data-jsaction="App.logout" data-jsprevent="1" style="color: var(--text-muted); font-size: 14px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s;" class="susp-logout-link"">
             <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
             Terminar Sessão
         </a>

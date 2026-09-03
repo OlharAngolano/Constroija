@@ -147,7 +147,7 @@ $currentUri = current_uri();
             </nav>
             
             <div class="nav-footer">
-                <a href="#" onclick="event.preventDefault(); App.logout();" class="nav-link" style="color:var(--accent-danger);">
+                <a href="#" data-jsaction="App.logout" data-jsprevent="1" class="nav-link" style="color:var(--accent-danger);">
                     <i data-lucide="log-out"></i>
                     <span>Sair</span>
                 </a>

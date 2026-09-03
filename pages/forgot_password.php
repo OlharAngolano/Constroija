@@ -22,7 +22,7 @@ require_once __DIR__ . '/../templates/header.php';
             <p style="color:var(--text-secondary); font-size:14px; margin-top:6px;">Insira o seu email para receber instruções de recuperação</p>
         </div>
 
-        <form id="forgot-form" onsubmit="event.preventDefault(); handleForgot();">
+        <form id="forgot-form" data-jsaction="handleForgot" data-jsprevent="1">
             <div class="form-group">
                 <label for="email" class="form-label">Email</label>
                 <input type="email" id="email" class="form-control" placeholder="exemplo@dominio.ao" required autocomplete="email">

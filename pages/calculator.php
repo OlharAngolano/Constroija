@@ -56,7 +56,7 @@ require_once __DIR__ . '/../templates/header.php';
                     Dimensões Físicas
                 </h3>
                 
-                <form id="calculator-form" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 16px;">
+                <form id="calculator-form" data-jsaction="__prevent__" style="display: flex; flex-direction: column; gap: 16px;">
                     
                     <!-- Inputs para Muro e Reboco (Comprimento e Altura) -->
                     <div id="dim-muro-reboco" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -200,12 +200,12 @@ require_once __DIR__ . '/../templates/header.php';
                 <!-- CTA Botão de Ação Guardar -->
                 <div style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
                     <?php if ($isLoggedIn): ?>
-                        <button type="button" onclick="saveToNewProject();" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <button type="button" data-jsaction="saveToNewProject" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="folder-plus" style="width: 16px; height: 16px;"></i>
                             Iniciar Obra com esta Estimativa
                         </button>
                     <?php else: ?>
-                        <button type="button" onclick="redirectToRegister();" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <button type="button" data-jsaction="redirectToRegister" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
                             Criar Conta para Salvar Orçamento
                         </button>

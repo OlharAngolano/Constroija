@@ -356,7 +356,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <li><i data-lucide="x" style="color: var(--accent-danger); width:16px; height:16px;"></i> Sem Notificações Push</li>
                 </ul>
             </div>
-            <button class="btn btn-secondary" style="width:100%;" onclick="selectPlan('pro1')">Escolher Plano</button>
+            <button class="btn btn-secondary" style="width:100%;" data-jsaction="selectPlan" data-jsarg="pro1">Escolher Plano</button>
         </div>
 
         <!-- PLANO 2: EMPREITEIRO PRO -->
@@ -380,7 +380,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <li><i data-lucide="check" style="color: var(--accent-success); width:16px; height:16px;"></i> Alertas WhatsApp Ativos</li>
                 </ul>
             </div>
-            <button class="btn btn-primary" style="width:100%;" onclick="selectPlan('pro3')">Escolher Plano</button>
+            <button class="btn btn-primary" style="width:100%;" data-jsaction="selectPlan" data-jsarg="pro3">Escolher Plano</button>
         </div>
 
         <!-- PLANO 3: CONSTRUTOR VIP -->
@@ -404,7 +404,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <li><i data-lucide="check" style="color: var(--accent-success); width:16px; height:16px;"></i> Acesso a Leads Diretos de Clientes</li>
                 </ul>
             </div>
-            <button class="btn btn-secondary" style="width:100%; border-color:var(--vip-gold); color:var(--vip-gold);" onclick="selectPlan('pro6')">Escolher Plano</button>
+            <button class="btn btn-secondary" style="width:100%; border-color:var(--vip-gold); color:var(--vip-gold);" data-jsaction="selectPlan" data-jsarg="pro6">Escolher Plano</button>
         </div>
     </div>
 
@@ -473,7 +473,7 @@ require_once __DIR__ . '/../templates/header.php';
 
                     <!-- (CJ-01) Sem simulador: registar um pedido de ativação para
                          confirmação manual da equipa; a ativação nunca é automática. -->
-                    <button type="button" id="btn-register-order" onclick="registerPaymentOrder()" class="btn btn-secondary" style="border-color:var(--vip-gold); color:var(--vip-gold); font-weight:700; display:flex; justify-content:center; align-items:center; gap:8px;">
+                    <button type="button" id="btn-register-order" data-jsaction="registerPaymentOrder" class="btn btn-secondary" style="border-color:var(--vip-gold); color:var(--vip-gold); font-weight:700; display:flex; justify-content:center; align-items:center; gap:8px;">
                         <i data-lucide="shield-check"></i>
                         Já transferi — Registar pedido de ativação
                     </button>

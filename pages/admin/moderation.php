@@ -82,7 +82,7 @@ require_once __DIR__ . '/../../templates/header.php';
                         </div>
 
                         <!-- Botão de exclusão imediata (Moderador) -->
-                        <button onclick="deletePostByModerator(<?php echo $post['id']; ?>)" 
+                        <button data-jsaction="deletePostByModerator" data-jsarg="<?php echo (int)$post['id']; ?>" 
                                 id="btn-delete-<?php echo $post['id']; ?>" 
                                 class="btn btn-primary" 
                                 style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2); font-size:12px; padding:6px 12px;">

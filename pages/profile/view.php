@@ -85,7 +85,7 @@ require_once __DIR__ . '/../../templates/header.php';
                 <div style="display: flex; gap: 12px; margin-bottom: 8px;">
                     <?php if ($currentUser && $currentUser['id'] !== $profile['id']): ?>
                         <!-- Seguir / Deixar de seguir -->
-                        <button id="follow-btn" onclick="toggleFollow(<?php echo $profile['id']; ?>)" class="btn <?php echo $isFollowing ? 'btn-secondary' : 'btn-primary'; ?>" style="padding: 8px 18px; font-size: 13px;">
+                        <button id="follow-btn" data-jsaction="toggleFollow" data-jsarg="<?php echo (int)$profile['id']; ?>" class="btn <?php echo $isFollowing ? 'btn-secondary' : 'btn-primary'; ?>" style="padding: 8px 18px; font-size: 13px;">
                             <i id="follow-icon" data-lucide="<?php echo $isFollowing ? 'user-check' : 'user-plus'; ?>" style="width:16px; height:16px;"></i>
                             <span id="follow-text"><?php echo $isFollowing ? 'A Seguir' : 'Seguir'; ?></span>
                         </button>

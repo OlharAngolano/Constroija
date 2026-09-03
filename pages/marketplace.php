@@ -244,11 +244,11 @@ try {
 
     <!-- FILTROS DE CATEGORIA -->
     <div class="category-filter">
-        <button class="category-btn active" onclick="filterCategory('all', this)">Todos os Parceiros</button>
-        <button class="category-btn" onclick="filterCategory('construcao', this)">Construção Geral</button>
-        <button class="category-btn" onclick="filterCategory('acabamentos', this)">Acabamentos</button>
-        <button class="category-btn" onclick="filterCategory('pintura', this)">Pintura</button>
-        <button class="category-btn" onclick="filterCategory('outros', this)">Ferragens & Outros</button>
+        <button class="category-btn active" data-jsaction="filterCategory" data-jsarg="all" data-jselement="1">Todos os Parceiros</button>
+        <button class="category-btn" data-jsaction="filterCategory" data-jsarg="construcao" data-jselement="1">Construção Geral</button>
+        <button class="category-btn" data-jsaction="filterCategory" data-jsarg="acabamentos" data-jselement="1">Acabamentos</button>
+        <button class="category-btn" data-jsaction="filterCategory" data-jsarg="pintura" data-jselement="1">Pintura</button>
+        <button class="category-btn" data-jsaction="filterCategory" data-jsarg="outros" data-jselement="1">Ferragens & Outros</button>
     </div>
 
     <!-- GRID DE LOJAS PARCEIRAS -->
@@ -286,7 +286,7 @@ try {
                     <div class="coupon-container <?php echo $isVIP ? 'vip-gold-glow' : ''; ?>">
                         <?php if (!$isVIP): ?>
                             <!-- MÁSCARA COM BLUR DE CADEADO -->
-                            <div class="coupon-blur-mask" onclick="window.location.href='/subscription'">
+                            <div class="coupon-blur-mask" data-jsaction="__go__" data-jsarg="/subscription">
                                 <i data-lucide="lock" style="width: 14px; height: 14px;"></i>
                                 Desbloquear Cupão VIP
                             </div>
@@ -300,7 +300,7 @@ try {
                             <div style="font-family: monospace; font-size: 15px; font-weight: 800; color: #fbbf24; letter-spacing: 0.5px;">
                                 <?php echo $partner['coupon']; ?>
                             </div>
-                            <button class="btn" onclick="copyToClipboard('<?php echo $partner['coupon']; ?>', this)" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 4px 10px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                            <button class="btn" data-jsaction="copyToClipboard" data-jsarg="<?php echo sanitize($partner['coupon']); ?>" data-jselement="1" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 4px 10px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                                 <i data-lucide="copy" style="width:12px; height:12px;"></i>
                                 Copiar
                             </button>

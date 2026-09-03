@@ -53,14 +53,14 @@ require_once __DIR__ . '/../../templates/header.php';
                         <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
                         Escolher Foto
                     </label>
-                    <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="uploadAvatar();">
+                    <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" data-jsaction="uploadAvatar">
                 </div>
             </div>
         </div>
 
         <!-- Bloco 2: Formulário Geral de Dados -->
         <div class="card">
-            <form id="settings-form" onsubmit="event.preventDefault(); saveSettings();" style="display: flex; flex-direction: column; gap: 20px;">
+            <form id="settings-form" data-jsaction="saveSettings" data-jsprevent="1" style="display: flex; flex-direction: column; gap: 20px;">
                 
                 <h4 style="color: var(--accent-primary); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
                     <i data-lucide="user"></i>

@@ -474,20 +474,20 @@ require_once __DIR__ . '/../templates/header.php';
 
         <!-- BARRA DE SELEÇÃO DE TABS E EXPORTAÇÃO PDF -->
         <div class="report-tabs-bar no-print">
-            <button class="report-tab-btn active" id="btn-tab-dashboard" onclick="switchReportTab('dashboard')">
+            <button class="report-tab-btn active" id="btn-tab-dashboard" data-jsaction="switchReportTab" data-jsarg="dashboard">
                 <i data-lucide="layout-dashboard" style="width: 15px; height: 15px;"></i>
                 Painel Financeiro
             </button>
-            <button class="report-tab-btn" id="btn-tab-budget" onclick="switchReportTab('budget')">
+            <button class="report-tab-btn" id="btn-tab-budget" data-jsaction="switchReportTab" data-jsarg="budget">
                 <i data-lucide="calculator" style="width: 15px; height: 15px;"></i>
                 Orçamento de Obra
             </button>
-            <button class="report-tab-btn" id="btn-tab-prebudget" onclick="switchReportTab('prebudget')">
+            <button class="report-tab-btn" id="btn-tab-prebudget" data-jsaction="switchReportTab" data-jsarg="prebudget">
                 <i data-lucide="clipboard-list" style="width: 15px; height: 15px;"></i>
                 Pré-Orçamento Planeado
             </button>
 
-            <button class="btn btn-primary" onclick="downloadUnifiedPDF()" style="margin-left: auto; background: var(--accent-primary); border: none; font-weight: 700; height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-md); box-shadow: 0 4px 15px rgba(249,115,22,0.25);">
+            <button class="btn btn-primary" data-jsaction="downloadUnifiedPDF" style="margin-left: auto; background: var(--accent-primary); border: none; font-weight: 700; height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-md); box-shadow: 0 4px 15px rgba(249,115,22,0.25);">
                 <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
                 Baixar PDF Unificado
             </button>
