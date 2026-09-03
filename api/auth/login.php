@@ -17,6 +17,8 @@ if (!Security::rateLimit('auth_login', 10, 60)) {
     json_error('Demasiadas tentativas de início de sessão. Por favor, aguarde um minuto antes de tentar novamente.', 429);
 }
 
+// A password deve ser lida sem htmlspecialchars(): pode conter caracteres como
+// <, > ou aspas e não deve ser alterada antes do password_verify().
 $email    = trim((string)input('email', ''));
 $password = (string)input('password', '');
 $remember = (bool)input('remember_me', false);
