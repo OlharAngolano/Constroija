@@ -35,9 +35,14 @@ try {
     // Construção básica da Query
     // (CJ-07) Os ficheiros privados são referenciados pelo ID em documents;
     // nunca são devolvidas URLs públicas de recibos/fotos.
-    $query = "SELECT e.*, pr.name as creator_name,
-                     (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'receipt' ORDER BY d.id DESC LIMIT 1) AS receipt_file_id,
-                     (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'expense_photo' ORDER BY d.id DESC LIMIT 1) AS photo_file_id
+    // Se a tabela `documents` (migração 001/CJ-07) ainda não existir, a consulta
+    // continua a funcionar sem os IDs de anexos.
+    $attachmentSelect = '';
+    if (table_available('documents')) {
+        $attachmentSelect = ",\n                     (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'receipt' ORDER BY d.id DESC LIMIT 1) AS receipt_file_id,\n                     (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'expense_photo' ORDER BY d.id DESC LIMIT 1) AS photo_file_id";
+    }
+
+    $query = "SELECT e.*, pr.name as creator_name{$attachmentSelect}
               FROM expenses e
               JOIN profiles pr ON e.user_id = pr.id
               WHERE e.project_id = :project_id AND e.deleted_at IS NULL";
@@ -60,16 +65,23 @@ try {
     }
     
     $query .= " ORDER BY e.purchase_date DESC, e.created_at DESC";
-    
-    $expenses = $db->fetchAll($query, $params);
+
+    try {
+        $expenses = $db->fetchAll($query, $params);
+    } catch (PDOException $e) {
+        // Salvaguarda: se a consulta com anexos falhar (ex.: tabela/coluna de
+        // `documents` em falta), repete sem os subqueries de anexos.
+        $baseQuery = str_replace($attachmentSelect, '', $query);
+        $expenses = $db->fetchAll($baseQuery, $params);
+    }
     
     // (CJ-07) URLs diretas removidas: as fotos/recibos são servidos apenas por
     // /api/files/{id} com autorização. Limpar os caminhos internos da resposta.
     foreach ($expenses as $key => $e) {
         $expenses[$key]['photo_url'] = null;
         $expenses[$key]['receipt_url'] = null;
-        $expenses[$key]['photo_file_id'] = $e['photo_file_id'] ? (int)$e['photo_file_id'] : null;
-        $expenses[$key]['receipt_file_id'] = $e['receipt_file_id'] ? (int)$e['receipt_file_id'] : null;
+        $expenses[$key]['photo_file_id'] = !empty($e['photo_file_id']) ? (int)$e['photo_file_id'] : null;
+        $expenses[$key]['receipt_file_id'] = !empty($e['receipt_file_id']) ? (int)$e['receipt_file_id'] : null;
     }
 
     json_ok(['expenses' => $expenses], 'Despesas carregadas.');

@@ -16,6 +16,33 @@ function db(): Database {
     return Database::getInstance();
 }
 
+/**
+ * Verifica se uma tabela existe na base de dados (resultado em cache por pedido).
+ *
+ * Usada nas funcionalidades opcionais/novas (ex.: documents — CJ-07) para que a
+ * aplicação continue a funcionar mesmo quando as migrações ainda não foram
+ * aplicadas pela equipa operacional, em vez de rebentar com erro 500.
+ */
+function table_available(string $table): bool {
+    static $cache = [];
+
+    if (array_key_exists($table, $cache)) {
+        return $cache[$table];
+    }
+
+    // Nome de tabela sempre vindo de código (nunca de input do utilizador).
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return $cache[$table] = false;
+    }
+
+    try {
+        db()->query("SELECT 1 FROM `{$table}` LIMIT 1");
+        return $cache[$table] = true;
+    } catch (PDOException $e) {
+        return $cache[$table] = false;
+    }
+}
+
 // --- AUTENTICAÇÃO ---
 
 /**
