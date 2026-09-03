@@ -138,9 +138,13 @@ try {
         ]
     );
 
-    // (CJ-07) Atualizar registos de documentos privados e limpar os antigos
+    // (CJ-07) Atualizar registos de documentos privados e limpar os antigos.
+    // Se a tabela `documents` (migração 001/CJ-07) ainda não existir, mantemos
+    // apenas os caminhos legados em photo_url/receipt_url.
     $pendingFileDeletes = [];
-    if ($newPhoto) {
+    $documentsAvailable = table_available('documents');
+
+    if ($newPhoto && $documentsAvailable) {
         $oldDoc = $db->fetch(
             "SELECT id, file_path FROM documents WHERE expense_id = ? AND kind = 'expense_photo' ORDER BY id DESC LIMIT 1",
             [$expenseId]
@@ -158,7 +162,7 @@ try {
         $photoUrl = $newPhoto;
     }
 
-    if ($newReceipt) {
+    if ($newReceipt && $documentsAvailable) {
         $oldDoc = $db->fetch(
             "SELECT id, file_path FROM documents WHERE expense_id = ? AND kind = 'receipt' ORDER BY id DESC LIMIT 1",
             [$expenseId]

@@ -88,19 +88,23 @@ try {
 
     $expenseId = (int)$db->lastInsertId();
 
-    // (CJ-07) Indexar os documentos privados (recibos/fotos) para servir via /api/files
-    $attachments = [];
-    if ($photoUrl) {
-        $attachments[] = [$projectId, (int)$user['id'], $expenseId, 'expense_photo', $photoUrl];
-    }
-    if ($receiptUrl) {
-        $attachments[] = [$projectId, (int)$user['id'], $expenseId, 'receipt', $receiptUrl];
-    }
-    foreach ($attachments as $att) {
-        $db->execute(
-            "INSERT INTO documents (project_id, owner_id, expense_id, kind, file_path, original_name) VALUES (?, ?, ?, ?, ?, ?)",
-            [$att[0], $att[1], $att[2], $att[3], $att[4], basename($att[4])]
-        );
+    // (CJ-07) Indexar os documentos privados (recibos/fotos) para servir via /api/files.
+    // Se a tabela `documents` (migração 001/CJ-07) ainda não tiver sido aplicada,
+    // a despesa é guardada na mesma (os ficheiros ficam apenas em photo_url/receipt_url).
+    if (table_available('documents')) {
+        $attachments = [];
+        if ($photoUrl) {
+            $attachments[] = [$projectId, (int)$user['id'], $expenseId, 'expense_photo', $photoUrl];
+        }
+        if ($receiptUrl) {
+            $attachments[] = [$projectId, (int)$user['id'], $expenseId, 'receipt', $receiptUrl];
+        }
+        foreach ($attachments as $att) {
+            $db->execute(
+                "INSERT INTO documents (project_id, owner_id, expense_id, kind, file_path, original_name) VALUES (?, ?, ?, ?, ?, ?)",
+                [$att[0], $att[1], $att[2], $att[3], $att[4], basename($att[4])]
+            );
+        }
     }
 
     set_flash_message('success', "Despesa \"{$name}\" lançada com sucesso!");

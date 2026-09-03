@@ -228,27 +228,48 @@ require_once __DIR__ . '/../../templates/header.php';
 <?php
 
 // 2. Procurar despesas ativas (não eliminadas)
-// (CJ-07) anexos privados referenciados por id de documents (servidos via /api/files)
-$expenses = $db->fetchAll(
-    "SELECT e.*, pr.name AS registrant_name,
-            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'receipt' ORDER BY d.id DESC LIMIT 1) AS receipt_file_id,
-            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'expense_photo' ORDER BY d.id DESC LIMIT 1) AS photo_file_id
+// (CJ-07) anexos privados referenciados por id de documents (servidos via /api/files).
+// A tabela `documents` faz parte da migração 001/CJ-07: se ainda não tiver sido
+// aplicada, a página carrega sem os anexos em vez de falhar com erro 500.
+$attachmentSelect = '';
+if (table_available('documents')) {
+    $attachmentSelect = ",\n            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'receipt' ORDER BY d.id DESC LIMIT 1) AS receipt_file_id,\n            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'expense_photo' ORDER BY d.id DESC LIMIT 1) AS photo_file_id";
+}
+
+$expensesSql = "SELECT e.*, pr.name AS registrant_name{$attachmentSelect}
      FROM expenses e 
      JOIN profiles pr ON e.user_id = pr.id 
      WHERE e.project_id = ? AND e.deleted_at IS NULL 
-     ORDER BY e.purchase_date DESC",
-    [$projectId]
-);
+     ORDER BY e.purchase_date DESC";
+
+try {
+    $expenses = $db->fetchAll($expensesSql, [$projectId]);
+} catch (PDOException $e) {
+    // Salvaguarda: se a consulta com anexos falhar (ex.: coluna/índice em falta),
+    // tenta novamente sem os subqueries de `documents`.
+    $expenses = $db->fetchAll(
+        "SELECT e.*, pr.name AS registrant_name
+         FROM expenses e
+         JOIN profiles pr ON e.user_id = pr.id
+         WHERE e.project_id = ? AND e.deleted_at IS NULL
+         ORDER BY e.purchase_date DESC",
+        [$projectId]
+    );
+}
 
 // 3. Procurar aportes de fundos
-$funds = $db->fetchAll(
-    "SELECT pf.*, pr.name AS registrant_name 
-     FROM project_funds pf 
-     JOIN profiles pr ON pf.user_id = pr.id 
-     WHERE pf.project_id = ? 
-     ORDER BY pf.created_at DESC",
-    [$projectId]
-);
+try {
+    $funds = $db->fetchAll(
+        "SELECT pf.*, pr.name AS registrant_name 
+         FROM project_funds pf 
+         JOIN profiles pr ON pf.user_id = pr.id 
+         WHERE pf.project_id = ? 
+         ORDER BY pf.created_at DESC",
+        [$projectId]
+    );
+} catch (PDOException $e) {
+    $funds = [];
+}
 
 // 4. Procurar itens de pré-orçamento (planeamento)
 try {
@@ -1224,16 +1245,16 @@ $typeTranslations = [
 
 <script nonce="<?php echo Security::getNonce(); ?>">
 window.FINANCIAL_METRICS = {
-    phasePlanned: <?php echo json_encode($phasePlanned); ?>,
-    phaseSpent: <?php echo json_encode($phaseSpent); ?>
+    phasePlanned: <?php echo json_encode($phasePlanned, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>,
+    phaseSpent: <?php echo json_encode($phaseSpent, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>
 };
 // --- SWITCH TAB CONTROLLER ---
 
 // (CJ-12) Índice dos itens por id para as ações das linhas (sem handlers inline)
 window.FINANCIAL_ITEMS = {
-    expenses: <?php echo json_encode($expenses); ?>,
-    funds: <?php echo json_encode($funds); ?>,
-    prebudget: <?php echo json_encode($preBudgets); ?>
+    expenses: <?php echo json_encode($expenses, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>,
+    funds: <?php echo json_encode($funds, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>,
+    prebudget: <?php echo json_encode($preBudgets, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>
 };
 (function () {
     function indexById(list) {
@@ -1767,13 +1788,14 @@ function preFillExpense(name, price, qty, unit, phase) {
 
 // --- INITIALIZE CHARTS ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Budget consumption doughnut
-    App.Charts.renderBudget('budget-chart', <?php echo $totalSpent; ?>, <?php echo $totalPlanned; ?>);
+    // 1. Budget consumption doughnut (usa o orçamento efetivo da obra, igual ao cartão
+    //    "Orçamento Geral": valor do projeto, ou total planeado, ou capital injetado)
+    App.Charts.renderBudget('budget-chart', <?php echo $totalSpent; ?>, <?php echo $budget; ?>);
 
     // 2. Spent by type donut
-    const typeData = <?php echo json_encode($typeSpent); ?>;
+    const typeData = <?php echo json_encode($typeSpent, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
     const translatedTypeData = {};
-    const translations = <?php echo json_encode($typeTranslations); ?>;
+    const translations = <?php echo json_encode($typeTranslations, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
     
     for (const key in typeData) {
         translatedTypeData[translations[key] || key] = typeData[key];
@@ -1781,7 +1803,7 @@ document.addEventListener('DOMContentLoaded', () => {
     App.Charts.renderByType('type-chart', translatedTypeData);
 
     // 3. Spent by phase bar
-    const phaseData = <?php echo json_encode($phaseSpent); ?>;
+    const phaseData = <?php echo json_encode($phaseSpent, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
     App.Charts.renderByPhase('phase-chart', phaseData);
     
     // Iniciar com câmbio adequado
