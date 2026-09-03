@@ -48,7 +48,7 @@ try {
     $popularTags = ['Betão Armado', 'Orçamentação', 'Fundações', 'Fiscalização', 'Alvenaria', 'Pinturas', 'Infiltrações', 'Instalações'];
 
 } catch (PDOException $e) {
-    die("Erro ao carregar Q&A Técnico: " . $e->getMessage());
+    page_error('Erro ao carregar Q&A Técnico: ', $e);
 }
 
 $title = 'Q&A Técnico de Construção — Constrói Já';

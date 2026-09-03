@@ -44,7 +44,7 @@ try {
     );
 
 } catch (PDOException $e) {
-    die("Erro ao carregar detalhes da pergunta: " . $e->getMessage());
+    page_error('Erro ao carregar detalhes da pergunta: ', $e);
 }
 
 $title = sanitize($question['title']) . " — Constrói Já";

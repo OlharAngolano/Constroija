@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/auth.php';
+
 // 1. Validar se o método é POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('Método não permitido.', 405);
@@ -42,7 +45,8 @@ $user = $db->fetch(
 );
 
 if ($user === null) {
-    error_log("Password reset API: Token not found in database. Token: $token");
+    // (CJ-05) sem token em logs
+    error_log("Password reset API: token não encontrado (utilizador " . ($user['id'] ?? '?') . ").");
     json_error('Token de recuperação inválido ou já utilizado.', 400);
 }
 
@@ -51,20 +55,18 @@ $expires = $user['password_reset_expires'];
 $now = date('Y-m-d H:i:s');
 
 if ($expires === null || $expires < $now) {
-    error_log("Password reset API: Token expired. Token: $token, Expires: " . ($expires ?? 'NULL') . ", Now: $now");
+    error_log("Password reset API: token expirado para o utilizador {$user['id']}.");
     json_error('O link de recuperação expirou. Por favor, solicite um novo.', 400);
 }
 
 $userId = (int)$user['id'];
 
-// 8. Encriptar a nova palavra-passe
-$hash = password_hash($password, PASSWORD_BCRYPT);
-
-// 9. Atualizar a base de dados e invalidar o token usado
-$db->execute(
-    "UPDATE profiles SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL, failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
-    [$hash, $userId]
-);
+// 8. Redefinir password, invalidar o token usado e revogar todos os
+//    dispositivos "remember me" (CJ-05/CJ-16).
+if (!reset_password_with_token((string)$token, $password)) {
+    error_log("Password reset API: falha ao gravar nova password para o utilizador {$userId}.");
+    json_error('Ocorreu um erro ao redefinir a palavra-passe. Tente novamente.', 500);
+}
 
 // 10. Retornar sucesso
 json_ok([], 'A sua palavra-passe foi alterada com sucesso! Pode agora iniciar sessão.');

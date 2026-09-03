@@ -93,5 +93,5 @@ try {
     json_ok([], 'Avaliação registada.');
 
 } catch (PDOException $e) {
-    json_error('Erro na base de dados ao registar avaliação: ' . $e->getMessage(), 500);
+    json_internal_error('Erro na base de dados ao registar avaliação: ', $e);
 }

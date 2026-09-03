@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Bootstrap mínimo: configuração global + classes de segurança + BD.
+// (config.php é idempotente via require_once e define APP_ENV/APP_DEBUG/LOG_DIR...)
+require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/Security.php';
 require_once __DIR__ . '/../config/database.php';
 
@@ -16,6 +19,80 @@ function db(): Database {
 // --- AUTENTICAÇÃO ---
 
 /**
+ * Lista positiva de campos do perfil que podem ser guardados na sessão e
+ * devolvidos ao cliente (auditoria CJ-04).
+ *
+ * Hashes, tokens de recuperação/verificação e tokens "remember me" NUNCA
+ * saem da base de dados para a sessão ou para respostas JSON.
+ */
+function user_session_dto(array $profile): array {
+    $allowed = [
+        'id', 'name', 'email', 'username', 'bio', 'location', 'avatar_url',
+        'whatsapp', 'website', 'language', 'currency', 'status', 'is_verified',
+        'is_admin', 'portfolio_data', 'portfolio_views', 'subscription_expires_at',
+        'last_login_at', 'created_at'
+    ];
+    $dto = [];
+    foreach ($allowed as $field) {
+        if (array_key_exists($field, $profile)) {
+            $dto[$field] = $profile[$field];
+        }
+    }
+    return $dto;
+}
+
+/**
+ * DTO público para respostas JSON de autenticação/perfil.
+ * Igual ao da sessão — nunca contém tokens nem hashes.
+ */
+function user_public_dto(array $profile): array {
+    return user_session_dto($profile);
+}
+
+/**
+ * Regista uma exceção interna com identificador de correlação e devolve
+ * o código a mostrar ao utilizador (a mensagem real fica só no log protegido).
+ */
+function log_internal_error(Throwable $e, string $context = ''): string {
+    $ref = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+    error_log(sprintf(
+        '[%s] Erro interno (%s): %s em %s:%d',
+        $ref,
+        $context,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
+    return $ref;
+}
+
+/**
+ * Resposta JSON de erro interno genérica (auditoria CJ-14): nunca expõe
+ * mensagens da base de dados ao cliente; o detalhe vai para o log com o mesmo ID.
+ */
+function json_internal_error(string $context, Throwable $e): never {
+    $ref = log_internal_error($e, $context);
+    json_error('Erro interno do servidor. Guarde o código ' . $ref . ' e contacte o suporte.', 500);
+}
+
+/**
+ * Página de erro genérica para falhas fatais de páginas HTML (auditoria CJ-14):
+ * a mensagem real fica no log; o utilizador vê apenas o código de referência.
+ */
+function page_error(string $context, Throwable $e): never {
+    $ref = log_internal_error($e, $context);
+    http_response_code(500);
+    echo "<!DOCTYPE html><html lang='pt-AO'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Erro — Constrói Já</title></head>"
+        . "<body style='font-family:sans-serif; text-align:center; padding:50px 20px; background:#0a0f1e; color:#f1f5f9; min-height:100vh; margin:0;'>"
+        . "<h1 style='color:#f97316;'>Constrói Já</h1>"
+        . "<h2 style='color:#ef4444;'>Ocorreu um erro inesperado</h2>"
+        . "<p>Guarde o código <strong>{$ref}</strong> e contacte o suporte.</p>"
+        . "<p><a href='/' style='color:#f97316;'>Voltar ao Início</a></p>"
+        . "</body></html>";
+    exit;
+}
+
+/**
  * Retorna os dados do utilizador atualmente autenticado na sessão
  */
 function current_user(): ?array {
@@ -25,39 +102,10 @@ function current_user(): ?array {
     
     $user = $_SESSION['user'] ?? null;
     if ($user) {
-        // Auto-migração para garantir a coluna 'last_activity_at' na tabela profiles
-        static $migrationRun = false;
-        if (!$migrationRun) {
-            try {
-                db()->query("SELECT last_activity_at FROM profiles LIMIT 1");
-            } catch (PDOException $e) {
-                try {
-                    db()->execute("ALTER TABLE profiles ADD COLUMN last_activity_at TIMESTAMP NULL DEFAULT NULL");
-                } catch (PDOException $e2) {
-                    // Ignora silenciosamente
-                }
-            }
-            
-            // Auto-migração para posts (is_reel, video_qualities)
-            try {
-                db()->query("SELECT is_reel FROM posts LIMIT 1");
-            } catch (PDOException $e) {
-                try {
-                    db()->execute("ALTER TABLE posts ADD COLUMN is_reel TINYINT DEFAULT 0");
-                } catch (PDOException $e2) {}
-            }
-            try {
-                db()->query("SELECT video_qualities FROM posts LIMIT 1");
-            } catch (PDOException $e) {
-                try {
-                    db()->execute("ALTER TABLE posts ADD COLUMN video_qualities TEXT NULL DEFAULT NULL");
-                } catch (PDOException $e2) {}
-            }
-            
-            $migrationRun = true;
-        }
-
-        // Atualizar data/hora de última atividade se o último update foi há mais de 60 segundos
+        // Atualizar data/hora de última atividade se o último update foi há mais de 60 segundos.
+        // Sem qualquer DDL em runtime (auditoria CJ-09): se a coluna não existir na base,
+        // a escrita falha silenciosamente e o processo continua (a migração é executada
+        // pelo operador via bin/migrate.php).
         $now = time();
         $lastUpdate = $_SESSION['last_activity_update'] ?? 0;
         if ($now - $lastUpdate > 60) {
@@ -65,7 +113,7 @@ function current_user(): ?array {
                 db()->execute("UPDATE profiles SET last_activity_at = NOW() WHERE id = ?", [$user['id']]);
                 $_SESSION['last_activity_update'] = $now;
             } catch (PDOException $e) {
-                // Ignora silenciosamente
+                // Ignora silenciosamente (coluna ainda não migrada)
             }
         }
     }
@@ -89,7 +137,13 @@ function is_admin(): bool {
 }
 
 /**
- * Exige autenticação. Redireciona para o login se não autenticado
+ * Exige autenticação. Redireciona para o login se não autenticado.
+ *
+ * Semântica revista (auditoria CJ-11):
+ * - profiles.status ('active'/'suspended') fica reservado à moderação da conta.
+ * - Uma subscrição/premium expirada NUNCA muda o status para 'suspended':
+ *   o membro é redirecionado para /subscription e pode renovar ou usar o plano gratuito.
+ * - Apenas um administrador pode suspender uma conta (status='suspended').
  */
 function require_auth(): void {
     if (!is_logged_in()) {
@@ -126,16 +180,17 @@ function require_auth(): void {
         return;
     }
     
-    if ((int)($user['is_admin'] ?? 0) === 0 && !empty($user['subscription_expires_at'])) {
-        if ($user['subscription_expires_at'] < date('Y-m-d H:i:s')) {
-            if (($user['status'] ?? '') !== 'suspended') {
-                db()->execute("UPDATE profiles SET status = 'suspended' WHERE id = ?", [$user['id']]);
-                $_SESSION['user']['status'] = 'suspended';
-            }
-            redirect('/subscription');
-        } elseif (($user['status'] ?? '') === 'suspended') {
-            redirect('/subscription');
-        }
+    $isAdmin = (int)($user['is_admin'] ?? 0) === 1;
+    $expired = !empty($user['subscription_expires_at']) && $user['subscription_expires_at'] < date('Y-m-d H:i:s');
+
+    // Conta suspensa por moderação (apenas admin): acesso restrito à página de subscrição/contacto
+    if (!$isAdmin && ($user['status'] ?? '') === 'suspended') {
+        redirect('/subscription?reason=moderation');
+    }
+
+    // Premium expirado: redireciona para renovação SEM suspender a conta
+    if (!$isAdmin && $expired) {
+        redirect('/subscription?reason=expired');
     }
 }
 

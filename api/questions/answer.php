@@ -61,5 +61,5 @@ try {
 
     json_ok(['answer' => $answer], 'Resposta enviada com sucesso!');
 } catch (PDOException $e) {
-    json_error('Erro técnico ao submeter resposta: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao submeter resposta: ', $e);
 }

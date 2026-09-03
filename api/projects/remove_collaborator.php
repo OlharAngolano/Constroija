@@ -69,5 +69,5 @@ try {
     json_ok([], 'Colaborador removido da equipa com sucesso.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao remover colaborador: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao remover colaborador: ', $e);
 }

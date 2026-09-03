@@ -8,6 +8,7 @@ if (is_logged_in()) {
 }
 
 $token = trim((string)($_GET['token'] ?? ''));
+unset($_GET['token']); // não propagar o token por URL/inputs desnecessários
 
 $isValid = false;
 $userEmail = '';
@@ -26,14 +27,9 @@ if (!empty($token)) {
         if ($expires !== null && $expires >= $now) {
             $isValid = true;
             $userEmail = $user['email'];
-        } else {
-            error_log("Password reset: Token expired. Token: $token, Expires: " . ($expires ?? 'NULL') . ", Now: $now");
         }
-    } else {
-        error_log("Password reset: Token not found in database. Token: $token");
+        // (CJ-05) sem token em logs
     }
-} else {
-    error_log("Password reset: Token parameter is empty.");
 }
 
 $title = 'Redefinir Palavra-passe — Constrói Já';

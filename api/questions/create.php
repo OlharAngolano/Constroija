@@ -54,5 +54,5 @@ try {
     
     json_ok(['question_id' => $questionId], 'Pergunta publicada com sucesso!');
 } catch (PDOException $e) {
-    json_error('Erro técnico ao publicar a pergunta: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao publicar a pergunta: ', $e);
 }

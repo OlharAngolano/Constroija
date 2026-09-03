@@ -48,7 +48,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    die("Erro ao carregar perfil público: " . $e->getMessage());
+    page_error('Erro ao carregar perfil público: ', $e);
 }
 
 $title = "Perfil de " . sanitize($profile['name']) . " — Constrói Já";

@@ -35,7 +35,7 @@ try {
     $pSkills = $portfolio['skills'] ?? [];
 
 } catch (PDOException $e) {
-    die("Erro ao carregar o portfólio público: " . $e->getMessage());
+    page_error('Erro ao carregar o portfólio público: ', $e);
 }
 
 $title = "Portfólio de " . sanitize($profile['name']) . " — Constrói Já";

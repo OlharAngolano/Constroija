@@ -41,9 +41,9 @@ try {
         [$uploadedPath, $user['id']]
     );
 
-    // Atualizar a sessão
+    // Atualizar a sessão — apenas campos seguros (CJ-04)
     $updatedUser = $db->fetch("SELECT * FROM profiles WHERE id = ?", [$user['id']]);
-    $_SESSION['user'] = $updatedUser;
+    $_SESSION['user'] = user_session_dto($updatedUser);
 
     // Se existia avatar antigo e não era padrão, podemos tentar apagar
     if ($oldAvatar && strpos($oldAvatar, 'uploads/avatars/') === 0) {
@@ -61,5 +61,5 @@ try {
     ], 'Foto de perfil atualizada com sucesso!');
 
 } catch (Exception $e) {
-    json_error('Erro ao guardar a foto de perfil: ' . $e->getMessage(), 500);
+    json_internal_error('Erro ao guardar a foto de perfil: ', $e);
 }

@@ -20,7 +20,7 @@ try {
     );
 
 } catch (PDOException $e) {
-    die("Erro ao carregar publicações para moderação: " . $e->getMessage());
+    page_error('Erro ao carregar publicações para moderação: ', $e);
 }
 
 $title = 'Moderação de Conteúdos — Constrói Já';

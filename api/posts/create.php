@@ -101,5 +101,5 @@ try {
     json_ok(['post' => $post], 'Publicação criada.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao registar post na base de dados: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao registar post na base de dados: ', $e);
 }

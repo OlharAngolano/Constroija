@@ -70,15 +70,30 @@ class Mail {
             $socketPrefix = 'ssl://';
         }
 
-        // Criar um contexto SSL robusto para evitar falhas de validação de certificados
-        // comuns em servidores partilhados como a Hostinger
-        $context = stream_context_create([
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            ]
-        ]);
+        // (CJ-06) Validação TLS ATIVADA por omissão (verify_peer, verify_peer_name
+        // e allow_self_signed=false). Desativar apenas em desenvolvimento explícito
+        // com SMTP_VERIFY_PEER=false no .env — nunca em produção.
+        $verifyPeer = defined('SMTP_VERIFY_PEER') ? SMTP_VERIFY_PEER : true;
+        if (!$verifyPeer && APP_ENV === 'production') {
+            $verifyPeer = true; // fail-safe em produção
+        }
+        $sslOptions = [
+            'verify_peer' => $verifyPeer,
+            'verify_peer_name' => $verifyPeer,
+            'allow_self_signed' => !$verifyPeer,
+        ];
+        // Usar os certificados CA do sistema quando disponíveis
+        $cafile = ini_get('openssl.cafile');
+        if (!$cafile) {
+            $capath = ini_get('openssl.capath');
+        }
+        if (!empty($cafile)) {
+            $sslOptions['cafile'] = $cafile;
+        }
+        if (!empty($capath)) {
+            $sslOptions['capath'] = $capath;
+        }
+        $context = stream_context_create(['ssl' => $sslOptions]);
 
         // Ligar ao servidor SMTP usando stream_socket_client para passar o contexto SSL
         $socket = @stream_socket_client(

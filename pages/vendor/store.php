@@ -10,34 +10,8 @@ middleware_require_auth();
 $user = current_user();
 $db = db();
 
-// Auto-migração da tabela 'vendor_stores' e 'marketplace_products'
-try {
-    $db->execute("
-        CREATE TABLE IF NOT EXISTS vendor_stores (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL UNIQUE,
-            store_name VARCHAR(255) NOT NULL,
-            logo_url VARCHAR(500) DEFAULT NULL,
-            banner_url VARCHAR(500) DEFAULT NULL,
-            category VARCHAR(50) NOT NULL DEFAULT 'construcao',
-            description TEXT DEFAULT NULL,
-            whatsapp VARCHAR(50) NOT NULL,
-            location VARCHAR(255) DEFAULT 'Luanda, Angola',
-            is_verified TINYINT(1) DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
-    try {
-        $db->query("SELECT vendor_store_id FROM marketplace_products LIMIT 1");
-    } catch (PDOException $eCol) {
-        $db->execute("ALTER TABLE marketplace_products ADD COLUMN vendor_store_id INT DEFAULT NULL");
-        $db->execute("ALTER TABLE marketplace_products ADD COLUMN stock_status VARCHAR(20) NOT NULL DEFAULT 'in_stock'");
-    }
-} catch (PDOException $e) {
-    // Tabela pronta
-}
+// (CJ-09) Sem DDL em runtime: vendor_stores/marketplace_products são criadas
+// por migrações (bin/migrate.php).
 
 // Obter ou auto-inicializar dados da loja do vendedor
 $store = $db->fetch("SELECT * FROM vendor_stores WHERE user_id = ?", [$user['id']]);

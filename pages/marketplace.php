@@ -21,112 +21,13 @@ $isVIP = $profile['status'] === 'active' && $expiresAt && $expiresAt > $now;
 $title = 'Parceiros B2B & Cupões — Constrói Já';
 require_once __DIR__ . '/../templates/header.php';
 
-// Auto-migração & Carregamento dinâmico da tabela 'partners'
 try {
-    // Tenta ler parceiros para verificar se a tabela existe e tem a coluna whatsapp
+    // (CJ-09) Sem DDL em runtime: a tabela partners vem das migrações.
     $partners = $db->fetchAll("SELECT * FROM partners ORDER BY id ASC");
-    if (!empty($partners) && !array_key_exists('whatsapp', $partners[0])) {
-        throw new PDOException("Coluna whatsapp em falta.");
-    }
 } catch (PDOException $e) {
-    // Se a tabela não existir, criar e popular de forma transparente
-    try {
-        $db->execute("
-            CREATE TABLE IF NOT EXISTS partners (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                logo VARCHAR(255) NOT NULL,
-                category VARCHAR(50) NOT NULL,
-                `desc` TEXT NOT NULL,
-                discount VARCHAR(100) NOT NULL,
-                coupon VARCHAR(50) NOT NULL,
-                whatsapp VARCHAR(50) DEFAULT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
-        
-        // Garantir que a coluna whatsapp existe na tabela se a tabela já existia anteriormente
-        try {
-            $db->query("SELECT whatsapp FROM partners LIMIT 1");
-        } catch (PDOException $eCol) {
-            $db->execute("ALTER TABLE partners ADD COLUMN whatsapp VARCHAR(50) DEFAULT NULL");
-        }
-        
-        $defaultPartners = [
-            [
-                'name' => 'Sika Angola',
-                'logo' => 'https://images.unsplash.com/photo-1581094288338-2314dddb7eed?w=150&auto=format&fit=crop&q=60',
-                'category' => 'acabamentos',
-                'desc' => 'Líder em impermeabilização, adjuvantes de betão, colagens elásticas e selagens no mercado angolano.',
-                'discount' => '15% de Desconto',
-                'coupon' => 'SIKAVIP15',
-                'whatsapp' => '244923000001'
-            ],
-            [
-                'name' => 'Cimento Secil Lobito',
-                'logo' => 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=150&auto=format&fit=crop&q=60',
-                'category' => 'construcao',
-                'desc' => 'Cimento de altíssima qualidade produzido localmente. Ideal para betão estrutural, rebocos e alvenaria.',
-                'discount' => '10% de Desconto',
-                'coupon' => 'SECILVIP10',
-                'whatsapp' => '244923000002'
-            ],
-            [
-                'name' => 'Tintas CIN Angola',
-                'logo' => 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=150&auto=format&fit=crop&q=60',
-                'category' => 'pintura',
-                'desc' => 'Toda a gama de tintas decorativas e industriais premium com catálogo completo de cores para o seu projeto.',
-                'discount' => '20% de Desconto',
-                'coupon' => 'CINVIP20',
-                'whatsapp' => '244923000003'
-            ],
-            [
-                'name' => 'Bazar Civil de Angola',
-                'logo' => 'https://images.unsplash.com/photo-1534224039826-c7a0eda0e6b3?w=150&auto=format&fit=crop&q=60',
-                'category' => 'outros',
-                'desc' => 'Larga gama de ferragens, cerâmicas, sanitários e ferramentas manuais/elétricas para construção civil.',
-                'discount' => '5% de Desconto extra',
-                'coupon' => 'BAZARVIP05',
-                'whatsapp' => '244923000004'
-            ],
-            [
-                'name' => 'ElecAngola Equipamentos',
-                'logo' => 'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?w=150&auto=format&fit=crop&q=60',
-                'category' => 'outros',
-                'desc' => 'Cabos elétricos, disjuntores, iluminação LED e quadros elétricos certificados para obras residenciais.',
-                'discount' => '12% de Desconto',
-                'coupon' => 'ELECVIP12',
-                'whatsapp' => '244923000005'
-            ],
-            [
-                'name' => 'Mapei Angola',
-                'logo' => 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=150&auto=format&fit=crop&q=60',
-                'category' => 'acabamentos',
-                'desc' => 'Adesivos químicos premium, argamassas especiais e produtos para assentamento de ladrilhos e pedras.',
-                'discount' => '15% de Desconto',
-                'coupon' => 'MAPEIVIP15',
-                'whatsapp' => '244923000006'
-            ]
-        ];
-
-        $existingCount = (int)$db->fetch("SELECT COUNT(*) as total FROM partners")['total'];
-        if ($existingCount === 0) {
-            foreach ($defaultPartners as $partner) {
-                $db->execute(
-                    "INSERT INTO partners (name, logo, category, `desc`, discount, coupon, whatsapp) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    [$partner['name'], $partner['logo'], $partner['category'], $partner['desc'], $partner['discount'], $partner['coupon'], $partner['whatsapp']]
-                );
-            }
-        } else {
-            // Apenas define números genéricos para as linhas existentes na atualização da coluna
-            $db->execute("UPDATE partners SET whatsapp = '244923000000' WHERE whatsapp IS NULL");
-        }
-
-        // Recarregar os parceiros agora que a tabela foi criada e povoada
-        $partners = $db->fetchAll("SELECT * FROM partners ORDER BY id ASC");
-    } catch (PDOException $e2) {
-        $partners = [];
-    }
+    error_log('Marketplace: tabela partners indisponível — execute bin/migrate.php');
+    $partners = [];
+    $partnersTableMissing = true;
 }
 ?>
 

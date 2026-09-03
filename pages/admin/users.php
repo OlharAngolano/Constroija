@@ -30,7 +30,7 @@ try {
     $profiles = $db->fetchAll($sql, $params);
 
 } catch (PDOException $e) {
-    die("Erro ao pesquisar utilizadores: " . $e->getMessage());
+    page_error('Erro ao pesquisar utilizadores: ', $e);
 }
 
 $title = 'Gestão de Utilizadores — Constrói Já';

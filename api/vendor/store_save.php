@@ -61,24 +61,7 @@ if (!$bannerPath && $bannerUrl !== '') {
 $db = db();
 
 try {
-    // Garantir tabela vendor_stores
-    $db->execute("
-        CREATE TABLE IF NOT EXISTS vendor_stores (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL UNIQUE,
-            store_name VARCHAR(255) NOT NULL,
-            logo_url VARCHAR(500) DEFAULT NULL,
-            banner_url VARCHAR(500) DEFAULT NULL,
-            category VARCHAR(50) NOT NULL DEFAULT 'construcao',
-            description TEXT DEFAULT NULL,
-            whatsapp VARCHAR(50) NOT NULL,
-            location VARCHAR(255) DEFAULT 'Luanda, Angola',
-            is_verified TINYINT(1) DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
+    // (CJ-09) A tabela vendor_stores é criada pelas migrações (bin/migrate.php).
     $existing = $db->fetch("SELECT id, logo_url, banner_url FROM vendor_stores WHERE user_id = ?", [$user['id']]);
 
     if ($existing) {
@@ -106,5 +89,5 @@ try {
     json_ok([], 'Loja atualizada.');
 
 } catch (PDOException $e) {
-    json_error('Erro ao guardar perfil da loja: ' . $e->getMessage(), 500);
+    json_internal_error('Erro ao guardar perfil da loja: ', $e);
 }

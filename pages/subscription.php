@@ -12,21 +12,40 @@ $db = db();
 
 // Buscar estado mais atualizado do utilizador
 $profile = $db->fetch("SELECT * FROM profiles WHERE id = ?", [$user['id']]);
-$_SESSION['user'] = $profile; // Sincroniza a sessão
+if ($profile) {
+    // Sincroniza a sessão apenas com o DTO seguro (CJ-04)
+    $_SESSION['user'] = user_session_dto($profile);
+} else {
+    $profile = $user;
+}
 
 $now = new DateTime();
 $expiresAt = $profile['subscription_expires_at'] ? new DateTime($profile['subscription_expires_at']) : null;
-$isVIP = $profile['status'] === 'active' && $expiresAt && $expiresAt > $now;
+$isExpired = $expiresAt && $expiresAt <= $now;
+$isVIP = $profile['status'] === 'active' && $expiresAt && !$isExpired;
+// 'suspended' fica reservado à moderação da conta (CJ-11): a expiração do
+// premium nunca suspende; o membro volta ao plano gratuito.
 $isSuspended = ($profile['status'] === 'suspended');
+$premiumJustExpired = !$isSuspended && $isExpired;
 
-// Determinar razão da suspensão
+// Razão exibida na página: 'admin' (moderação) ou 'expired' (contas legadas
+// suspensas por faturação antes da correção CJ-11).
 $suspendedReason = '';
 if ($isSuspended) {
-    if ($expiresAt && $expiresAt <= $now) {
-        $suspendedReason = 'expired'; // Plano expirado
-    } else {
-        $suspendedReason = 'admin'; // Suspensão administrativa
-    }
+    $suspendedReason = $isExpired ? 'expired' : 'admin';
+}
+
+// Pedido de pagamento pendente (CJ-01): o pagamento só é ativado após
+// confirmação da equipa — nunca pelo próprio utilizador.
+$pendingOrder = null;
+try {
+    $pendingOrder = $db->fetch(
+        "SELECT id, plan_name, amount, currency, created_at FROM payment_orders
+         WHERE user_id = ? AND status = 'pending' ORDER BY id DESC LIMIT 1",
+        [$user['id']]
+    );
+} catch (PDOException $e) {
+    // Tabela ainda não migrada — ignora
 }
 
 $isTrial = false;
@@ -173,22 +192,6 @@ require_once __DIR__ . '/../templates/header.php';
         letter-spacing: 0.5px;
     }
 
-    .confetti-particle {
-        position: fixed;
-        width: 10px;
-        height: 10px;
-        background: var(--accent-primary);
-        z-index: 9999;
-        border-radius: 2px;
-        pointer-events: none;
-        animation: fall linear forwards;
-    }
-
-    @keyframes fall {
-        0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
-    }
-
     .atm-card {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         border: 1px solid rgba(255, 255, 255, 0.05);
@@ -211,54 +214,7 @@ require_once __DIR__ . '/../templates/header.php';
         pointer-events: none;
     }
 
-    .success-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(10, 15, 30, 0.9);
-        backdrop-filter: blur(10px);
-        z-index: 5000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: 20px;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.5s ease;
-    }
-
-    .success-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    .checkmark-circle {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: rgba(16, 185, 129, 0.1);
-        border: 2px solid var(--accent-success);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--accent-success);
-        box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
-        animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-
-    @keyframes scaleIn {
-        0% { transform: scale(0.5); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
 </style>
-
-<div class="success-overlay" id="payment-success-overlay">
-    <div class="checkmark-circle">
-        <i data-lucide="check" style="width: 48px; height: 48px; stroke-width: 3;"></i>
-    </div>
-    <h2 style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 32px; color: var(--accent-success); text-align: center;">Pagamento Confirmado!</h2>
-    <p style="color: var(--text-secondary); text-align: center; max-width: 450px;">A sua subscrição VIP foi ativada instantaneamente. Desfrute de todas as ferramentas sem limites!</p>
-</div>
 
 <div style="max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;" class="slideUp">
     
@@ -269,17 +225,31 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
             <div style="flex:1;">
                 <?php if ($suspendedReason === 'admin'): ?>
-                    <h4 style="margin: 0; color: var(--accent-danger); font-size: 15px; font-weight: 700;">Conta Suspensa pelo Administrador</h4>
+                    <h4 style="margin: 0; color: var(--accent-danger); font-size: 15px; font-weight: 700;">Conta Suspensa pela Administração</h4>
                     <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5;">
-                        A sua conta foi suspensa pela equipa de administração. Para reativar o acesso, selecione um dos planos abaixo e efetue o pagamento, ou entre em contacto pelo WhatsApp 
-                        <a href="https://wa.me/244923972131" target="_blank" style="color:#25d366; font-weight:700; text-decoration:none;">+244 923 972 131</a>.
+                        A sua conta foi suspensa por motivos de moderação. Contacte a equipa pelo WhatsApp 
+                        <a href="https://wa.me/244923972131" target="_blank" style="color:#25d366; font-weight:700; text-decoration:none;">+244 923 972 131</a>
+                        para regularizar a situação.
                     </p>
                 <?php else: ?>
-                    <h4 style="margin: 0; color: var(--accent-danger); font-size: 15px; font-weight: 700;">Subscrição Expirada — Acesso Restrito</h4>
+                    <h4 style="margin: 0; color: var(--accent-danger); font-size: 15px; font-weight: 700;">Subscrição Expirada — Renove o Acesso</h4>
                     <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5;">
                         O seu período de teste expirou ou a sua subscrição VIP terminou. Selecione um dos planos abaixo e regularize a transferência para reativar o acesso total imediato a todas as ferramentas e relatórios!
                     </p>
                 <?php endif; ?>
+            </div>
+        </div>
+    <?php elseif ($premiumJustExpired): ?>
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: -10px; animation: fadeIn var(--transition-normal) ease;">
+            <div style="background: rgba(239, 68, 68, 0.15); color: var(--accent-danger); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i data-lucide="alert-triangle" style="width: 22px; height: 22px;"></i>
+            </div>
+            <div style="flex:1;">
+                <h4 style="margin: 0; color: var(--accent-danger); font-size: 15px; font-weight: 700;">Subscrição Expirada — Plano Gratuito</h4>
+                <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5;">
+                    A sua subscrição VIP terminou e a sua conta passou ao plano gratuito (não foi suspensa).
+                    Renove quando quiser para recuperar o acesso às ferramentas premium.
+                </p>
             </div>
         </div>
     <?php elseif (!$isVIP): ?>
@@ -316,7 +286,7 @@ require_once __DIR__ . '/../templates/header.php';
             <?php elseif ($isSuspended): ?>
                 <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--accent-danger); padding: 8px 16px; border-radius: 50px; font-weight: 600; font-size: 14px;">
                     <i data-lucide="shield-off" style="width: 18px; height: 18px;"></i>
-                    Conta Suspensa — Pagamento Pendente
+                    <?php echo $suspendedReason === 'admin' ? 'Conta Suspensa pela Administração' : 'Subscrição Expirada — Renovar'; ?>
                 </div>
             <?php else: ?>
                 <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: var(--accent-primary); padding: 8px 16px; border-radius: 50px; font-weight: 600; font-size: 14px;">
@@ -352,6 +322,18 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
     </div>
 
+    <?php if ($pendingOrder): ?>
+        <div style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius-md); padding: 18px 22px; display: flex; align-items: center; gap: 14px; margin-top: 20px;">
+            <i data-lucide="clock" style="color: var(--vip-gold); width: 22px; height: 22px; flex-shrink: 0;"></i>
+            <div style="font-size: 13.5px; line-height: 1.5; color: var(--text-secondary);">
+                <strong style="color: var(--text-primary);">Pedido de ativação pendente (#<?php echo (int)$pendingOrder['id']; ?>)</strong> —
+                plano <strong><?php echo sanitize($pendingOrder['plan_name']); ?></strong> de
+                <?php echo format_currency((float)$pendingOrder['amount'], $pendingOrder['currency'] ?? 'AOA'); ?>.
+                Assim que a equipa confirmar a transferência, o seu acesso é ativado automaticamente.
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- PRICING CARDS -->
     <div class="pricing-grid">
         <!-- PLANO 1: MESTRE DE OBRA -->
@@ -374,7 +356,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <li><i data-lucide="x" style="color: var(--accent-danger); width:16px; height:16px;"></i> Sem Notificações Push</li>
                 </ul>
             </div>
-            <button class="btn btn-secondary" style="width:100%;" onclick="selectPlan('Mestre de Obra', 1, 5000)">Escolher Plano</button>
+            <button class="btn btn-secondary" style="width:100%;" onclick="selectPlan('pro1')">Escolher Plano</button>
         </div>
 
         <!-- PLANO 2: EMPREITEIRO PRO -->
@@ -398,7 +380,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <li><i data-lucide="check" style="color: var(--accent-success); width:16px; height:16px;"></i> Alertas WhatsApp Ativos</li>
                 </ul>
             </div>
-            <button class="btn btn-primary" style="width:100%;" onclick="selectPlan('Empreiteiro Pro', 3, 12000)">Escolher Plano</button>
+            <button class="btn btn-primary" style="width:100%;" onclick="selectPlan('pro3')">Escolher Plano</button>
         </div>
 
         <!-- PLANO 3: CONSTRUTOR VIP -->
@@ -422,7 +404,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <li><i data-lucide="check" style="color: var(--accent-success); width:16px; height:16px;"></i> Acesso a Leads Diretos de Clientes</li>
                 </ul>
             </div>
-            <button class="btn btn-secondary" style="width:100%; border-color:var(--vip-gold); color:var(--vip-gold);" onclick="selectPlan('Construtor VIP', 6, 20000)">Escolher Plano</button>
+            <button class="btn btn-secondary" style="width:100%; border-color:var(--vip-gold); color:var(--vip-gold);" onclick="selectPlan('pro6')">Escolher Plano</button>
         </div>
     </div>
 
@@ -488,6 +470,13 @@ require_once __DIR__ . '/../templates/header.php';
                         <i data-lucide="message-square"></i>
                         Enviar Comprovativo pelo WhatsApp
                     </a>
+
+                    <!-- (CJ-01) Sem simulador: registar um pedido de ativação para
+                         confirmação manual da equipa; a ativação nunca é automática. -->
+                    <button type="button" id="btn-register-order" onclick="registerPaymentOrder()" class="btn btn-secondary" style="border-color:var(--vip-gold); color:var(--vip-gold); font-weight:700; display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <i data-lucide="shield-check"></i>
+                        Já transferi — Registar pedido de ativação
+                    </button>
                 </div>
             </div>
 
@@ -497,154 +486,64 @@ require_once __DIR__ . '/../templates/header.php';
 </div>
 
 <script nonce="<?php echo Security::getNonce(); ?>">
-    let currentSelectedPlan = {
-        name: '',
-        months: 1,
-        amount: 0
+    // Planos definidos no servidor (valores de referência; o servidor valida sempre)
+    const PLANS = {
+        pro1: { name: 'Mestre de Obra', months: 1, amount: 5000 },
+        pro3: { name: 'Empreiteiro Pro', months: 3, amount: 12000 },
+        pro6: { name: 'Construtor VIP', months: 6, amount: 20000 }
     };
+    let currentSelectedPlan = null;
 
-    function selectPlan(planName, months, amount) {
-        currentSelectedPlan = {
-            name: planName,
-            months: months,
-            amount: amount
-        };
+    function selectPlan(planKey) {
+        const plan = PLANS[planKey];
+        if (!plan) return;
+        currentSelectedPlan = { key: planKey, ...plan };
 
         // Formatar quantia
-        const formattedAmount = new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2 }).format(amount) + ' Kz';
+        const formattedAmount = new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2 }).format(plan.amount) + ' Kz';
 
         // Atualizar interface
-        document.getElementById('selected-plan-badge').innerText = planName;
+        document.getElementById('selected-plan-badge').innerText = plan.name;
         document.getElementById('atm-amount-val').innerText = formattedAmount;
 
         // Atualizar link do WhatsApp com o texto pré-preenchido do plano
         const whatsappBtn = document.getElementById('whatsapp-submit-btn');
         if (whatsappBtn) {
-            const message = encodeURIComponent(`Olá, gostava de confirmar o pagamento da minha assinatura VIP no Constrói Já.\n\nPlano Selecionado: ${planName}\nValor: ${formattedAmount}\n\nSeguem os meus detalhes e o comprovativo de transferência em anexo.`);
+            const message = encodeURIComponent(`Olá, gostava de confirmar o pagamento da minha assinatura VIP no Constrói Já.\n\nPlano Selecionado: ${plan.name}\nValor: ${formattedAmount}\n\nSeguem os meus detalhes e o comprovativo de transferência em anexo.`);
             whatsappBtn.href = `https://wa.me/244923972131?text=${message}`;
+        }
+
+        const registerBtn = document.getElementById('btn-register-order');
+        if (registerBtn) {
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = '<i data-lucide="shield-check" style="width:18px; height:18px;"></i> Já transferi — Registar pedido de ativação';
+            if (window.lucide) window.lucide.createIcons();
         }
 
         const paymentSection = document.getElementById('payment-section');
         paymentSection.style.display = 'block';
         paymentSection.scrollIntoView({ behavior: 'smooth' });
-        
-        App.showToast(`Dados de pagamento gerados para o plano ${planName}!`, 'info');
+
+        App.showToast(`Dados de pagamento gerados para o plano ${plan.name}!`, 'info');
     }
 
-    // Função de Síntese de Som (Web Audio API WOW Chimes)
-    function playSuccessChime() {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Nota 1 (Dó / C5)
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
-            gain1.gain.setValueAtTime(0, ctx.currentTime);
-            gain1.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
-            gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            
-            // Nota 2 (Mi / E5)
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
-            gain2.gain.setValueAtTime(0, ctx.currentTime + 0.1);
-            gain2.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.15);
-            gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            
-            // Nota 3 (Sol / G5)
-            const osc3 = ctx.createOscillator();
-            const gain3 = ctx.createGain();
-            osc3.type = 'sine';
-            osc3.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
-            gain3.gain.setValueAtTime(0, ctx.currentTime + 0.2);
-            gain3.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.25);
-            gain3.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-            osc3.connect(gain3);
-            gain3.connect(ctx.destination);
-            
-            osc1.start(ctx.currentTime);
-            osc1.stop(ctx.currentTime + 0.5);
-            
-            osc2.start(ctx.currentTime + 0.1);
-            osc2.stop(ctx.currentTime + 0.6);
-            
-            osc3.start(ctx.currentTime + 0.2);
-            osc3.stop(ctx.currentTime + 1.0);
-        } catch (e) {
-            console.error('Audio synthesis failed:', e);
+    // (CJ-01) Registo de pedido de pagamento — a ativação é feita pela equipa
+    // após confirmação do comprovativo (ou por webhook do gateway com assinatura).
+    async function registerPaymentOrder() {
+        const btn = document.getElementById('btn-register-order');
+        if (!currentSelectedPlan || !currentSelectedPlan.key) {
+            App.showToast('Selecione primeiro um plano.', 'warning');
+            return;
         }
-    }
-
-    // Geração de Confetes 3D em CSS Nativos
-    function createConfetti() {
-        const colors = ['#f59e0b', '#fbbf24', '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#a855f7'];
-        for (let i = 0; i < 80; i++) {
-            const particle = document.createElement('div');
-            particle.classList.add('confetti-particle');
-            
-            // Random styling
-            particle.style.left = Math.random() * 100 + 'vw';
-            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            particle.style.transform = `rotate(${Math.random() * 360}deg)`;
-            
-            // Random duration and delay
-            const duration = 2 + Math.random() * 3;
-            const delay = Math.random() * 1.5;
-            particle.style.animationDuration = duration + 's';
-            particle.style.animationDelay = delay + 's';
-            
-            // Random sizes
-            const size = 6 + Math.random() * 8;
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            
-            document.body.appendChild(particle);
-            
-            // Cleanup
-            setTimeout(() => {
-                particle.remove();
-            }, (duration + delay) * 1000);
-        }
-    }
-
-    // Ajax de Confirmação de Pagamento Simulado
-    async function simulatePayment() {
-        const btn = document.getElementById('btn-simulate-webhook');
         App.setLoading(btn, true);
-
         try {
-            const response = await App.post('/api/payments/callback', {
-                months: currentSelectedPlan.months,
-                amount: currentSelectedPlan.amount,
-                plan_name: currentSelectedPlan.name
-            });
-
-            // 1. WOW sound synthesized
-            playSuccessChime();
-
-            // 2. CSS Confetti falling down
-            createConfetti();
-
-            // 3. Show full overlay
-            const overlay = document.getElementById('payment-success-overlay');
-            overlay.classList.add('active');
-
-            App.showToast('Subscrição renovada com sucesso!', 'success');
-
-            // 4. Reload page after 3 seconds to synchronize states
-            setTimeout(() => {
-                window.location.href = '/subscription';
-            }, 3200);
-
+            const response = await App.post('/api/payments/create-order', { plan: currentSelectedPlan.key });
+            App.showToast('Pedido registado! Assim que a equipa confirmar a transferência, o seu acesso é ativado.', 'success');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="check-circle" style="width:18px; height:18px;"></i> Pedido enviado — aguarde confirmação';
+            if (window.lucide) window.lucide.createIcons();
         } catch (e) {
-            App.showToast(e.message || 'Erro ao processar simulação de pagamento.', 'danger');
+            App.showToast(e.message || 'Erro ao registar o pedido. Tente novamente.', 'danger');
             App.setLoading(btn, false);
         }
     }

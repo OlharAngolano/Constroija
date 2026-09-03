@@ -57,5 +57,5 @@ try {
     ], 'Link de partilha gerado com sucesso! Válido por 7 dias.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao gerar link de partilha: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao gerar link de partilha: ', $e);
 }

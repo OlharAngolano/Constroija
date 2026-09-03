@@ -11,63 +11,13 @@ $user = current_user();
 $db = db();
 
 try {
-    // Garantir que a tabela partners existe (Auto-migração transparente)
-    try {
-        $db->query("SELECT 1 FROM partners LIMIT 1");
-    } catch (PDOException $ex) {
-        $db->execute("
-            CREATE TABLE IF NOT EXISTS partners (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                logo VARCHAR(255) NOT NULL,
-                category VARCHAR(50) NOT NULL,
-                `desc` TEXT NOT NULL,
-                discount VARCHAR(100) NOT NULL,
-                coupon VARCHAR(50) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
-        
-        $defaultPartners = [
-            [
-                'name' => 'Sika Angola',
-                'logo' => 'https://images.unsplash.com/photo-1581094288338-2314dddb7eed?w=150&auto=format&fit=crop&q=60',
-                'category' => 'acabamentos',
-                'desc' => 'Líder em impermeabilização, adjuvantes de betão, colagens elásticas e selagens no mercado angolano.',
-                'discount' => '15% de Desconto',
-                'coupon' => 'SIKAVIP15'
-            ],
-            [
-                'name' => 'Cimento Secil Lobito',
-                'logo' => 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=150&auto=format&fit=crop&q=60',
-                'category' => 'construcao',
-                'desc' => 'Cimento de altíssima qualidade produzido localmente. Ideal para betão estrutural, rebocos e alvenaria.',
-                'discount' => '10% de Desconto',
-                'coupon' => 'SECILVIP10'
-            ],
-            [
-                'name' => 'Tintas CIN Angola',
-                'logo' => 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=150&auto=format&fit=crop&q=60',
-                'category' => 'pintura',
-                'desc' => 'Toda a gama de tintas decorativas e industriais premium com catálogo completo de cores para o seu projeto.',
-                'discount' => '20% de Desconto',
-                'coupon' => 'CINVIP20'
-            ]
-        ];
-
-        foreach ($defaultPartners as $p) {
-            $db->execute(
-                "INSERT INTO partners (name, logo, category, `desc`, discount, coupon) VALUES (?, ?, ?, ?, ?, ?)",
-                [$p['name'], $p['logo'], $p['category'], $p['desc'], $p['discount'], $p['coupon']]
-            );
-        }
-    }
-
-    // Obter todos os parceiros ordenados pelo ID mais recente
+    // (CJ-09) Sem DDL em runtime: a tabela partners é criada por migrações
+    // (bin/migrate.php). Se não existir, o operador deve executar as migrações.
     $partnersList = $db->fetchAll("SELECT * FROM partners ORDER BY id DESC");
-
 } catch (PDOException $e) {
-    die("Erro ao carregar parceiros: " . $e->getMessage());
+    error_log('Admin/parceiros: tabela partners indisponível — execute bin/migrate.php');
+    $partnersList = [];
+    $partnersTableMissing = true;
 }
 
 $title = 'Gestão de Parceiros B2B — Constrói Já';

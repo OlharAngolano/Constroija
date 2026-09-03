@@ -42,5 +42,5 @@ try {
     ], 'Notificações carregadas.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao carregar notificações: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao carregar notificações: ', $e);
 }

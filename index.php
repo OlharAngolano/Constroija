@@ -1,31 +1,14 @@
 <?php
 declare(strict_types=1);
 
-// 1. Inicializar configurações globais e base de dados
+// 1. Inicializar configurações globais e base de dados.
+//    (config.php já arranca o Security::init — sessão segura, headers, WAF e
+//    gestão de erros — para que qualquer entrada tenha o mesmo bootstrap, CJ-10)
 require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/includes/Security.php';
 require_once __DIR__ . '/includes/helpers.php';
 require_once __DIR__ . '/includes/auth.php';
 
-// 2. Iniciar o Mini-WAF (Trata de sessões seguras, headers de segurança CSP/rate-limiting/CSRF/XSS/SQLi)
-Security::init();
-
-// Auto-suspender utilizadores cuja subscrição/período grátis expirou
-try {
-    db()->execute(
-        "UPDATE profiles 
-         SET status = 'suspended' 
-         WHERE is_admin = 0 
-           AND status = 'active' 
-           AND subscription_expires_at IS NOT NULL 
-           AND subscription_expires_at < ?",
-        [date('Y-m-d H:i:s')]
-    );
-} catch (PDOException $e) {
-    // Silencioso se a BD não estiver pronta ou coluna inexistente
-}
-
-// 3. Verificar se existe cookie Remember Me ativo para restabelecer sessão
+// 2. Verificar se existe cookie Remember Me ativo para restabelecer sessão
 check_remember_me();
 
 // 4. Capturar a URI amigável atual
@@ -96,7 +79,11 @@ if (strpos($uriClean, '/api') === 0) {
         '/api/admin/partners/create' => '/api/admin/partners/create.php',
         '/api/admin/partners/update' => '/api/admin/partners/update.php',
         '/api/admin/partners/delete' => '/api/admin/partners/delete.php',
-        '/api/payments/callback'     => '/api/payments/callback.php',
+        '/api/payments/create-order' => '/api/payments/create_order.php',
+        '/api/payments/webhook'      => '/api/payments/webhook.php',
+        '/api/admin/payments/list'   => '/api/admin/payments/list.php',
+        '/api/admin/payments/confirm'=> '/api/admin/payments/confirm.php',
+        '/api/files'                 => '/api/files.php',
     ];
 
     if (isset($apiRoutes[$uriClean])) {

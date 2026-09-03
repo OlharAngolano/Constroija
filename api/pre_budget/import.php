@@ -169,5 +169,5 @@ try {
     if (isset($db) && $db->beginTransaction()) {
         $db->rollBack();
     }
-    json_error('Erro técnico ao importar o ficheiro CSV no servidor: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao importar o ficheiro CSV no servidor: ', $e);
 }

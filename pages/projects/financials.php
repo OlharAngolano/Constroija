@@ -228,8 +228,11 @@ require_once __DIR__ . '/../../templates/header.php';
 <?php
 
 // 2. Procurar despesas ativas (não eliminadas)
+// (CJ-07) anexos privados referenciados por id de documents (servidos via /api/files)
 $expenses = $db->fetchAll(
-    "SELECT e.*, pr.name AS registrant_name 
+    "SELECT e.*, pr.name AS registrant_name,
+            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'receipt' ORDER BY d.id DESC LIMIT 1) AS receipt_file_id,
+            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'expense_photo' ORDER BY d.id DESC LIMIT 1) AS photo_file_id
      FROM expenses e 
      JOIN profiles pr ON e.user_id = pr.id 
      WHERE e.project_id = ? AND e.deleted_at IS NULL 
@@ -513,11 +516,11 @@ $typeTranslations = [
                                 <td data-label="Data" style="padding:12px 8px; white-space:nowrap;"><?php echo date('d/m/Y', strtotime($exp['purchase_date'])); ?></td>
                                 <td data-label="Anexos" style="padding:12px 8px; white-space:nowrap;">
                                     <div style="display:flex; gap:8px;">
-                                        <?php if ($exp['photo_url']): ?>
-                                            <a href="<?php echo APP_URL . '/' . $exp['photo_url']; ?>" target="_blank" title="Foto do produto" style="color:var(--accent-primary);"><i data-lucide="image" style="width:16px; height:16px;"></i></a>
+                                        <?php if (!empty($exp['photo_file_id'])): ?>
+                                            <a href="<?php echo APP_URL; ?>/api/files?id=<?php echo (int)$exp['photo_file_id']; ?>" target="_blank" title="Foto do produto (privada)" style="color:var(--accent-primary);"><i data-lucide="image" style="width:16px; height:16px;"></i></a>
                                         <?php endif; ?>
-                                        <?php if ($exp['receipt_url']): ?>
-                                            <a href="<?php echo APP_URL . '/' . $exp['receipt_url']; ?>" target="_blank" title="Recibo de compra" style="color:var(--accent-secondary);"><i data-lucide="file-text" style="width:16px; height:16px;"></i></a>
+                                        <?php if (!empty($exp['receipt_file_id'])): ?>
+                                            <a href="<?php echo APP_URL; ?>/api/files?id=<?php echo (int)$exp['receipt_file_id']; ?>" target="_blank" title="Recibo de compra (privado)" style="color:var(--accent-secondary);"><i data-lucide="file-text" style="width:16px; height:16px;"></i></a>
                                         <?php endif; ?>
                                         <?php if ($exp['youtube_link']): ?>
                                             <a href="<?php echo sanitize($exp['youtube_link']); ?>" target="_blank" title="Link de Vídeo" style="color:var(--accent-danger);"><i data-lucide="video" style="width:16px; height:16px;"></i></a>

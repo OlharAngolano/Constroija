@@ -78,14 +78,7 @@ try {
     $partnerName = $store['store_name'];
     $whatsapp = $store['whatsapp'];
 
-    // 2. Garantir coluna vendor_store_id e stock_status na tabela marketplace_products
-    try {
-        $db->query("SELECT vendor_store_id FROM marketplace_products LIMIT 1");
-    } catch (PDOException $eCol) {
-        $db->execute("ALTER TABLE marketplace_products ADD COLUMN vendor_store_id INT DEFAULT NULL");
-        $db->execute("ALTER TABLE marketplace_products ADD COLUMN stock_status VARCHAR(20) NOT NULL DEFAULT 'in_stock'");
-    }
-
+    // (CJ-09) Colunas garantidas pelas migrações (bin/migrate.php).
     if ($productId > 0) {
         // Atualizar produto existente (Verificar propriedade)
         $existing = $db->fetch("SELECT id, image, user_id FROM marketplace_products WHERE id = ?", [$productId]);
@@ -127,5 +120,5 @@ try {
     }
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao guardar produto: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao guardar produto: ', $e);
 }

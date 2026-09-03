@@ -48,5 +48,5 @@ try {
     ], 'Pesquisa concluída.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico na pesquisa: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico na pesquisa: ', $e);
 }
