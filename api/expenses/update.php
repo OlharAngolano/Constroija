@@ -71,21 +71,22 @@ try {
 
     $photoUrl = $expense['photo_url'];
     $receiptUrl = $expense['receipt_url'];
+    $newPhoto = null;
+    $newReceipt = null;
 
-    // Processar novos uploads se enviados
+    // Processar novos uploads se enviados (os ficheiros antigos e as respetivas
+    // linhas em documents só são removidos DEPOIS da atualização com sucesso)
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
         $uploaded = Upload::file($_FILES['photo'], 'expenses/photos');
         if ($uploaded) {
-            if ($photoUrl && file_exists(ROOT_DIR . '/' . $photoUrl)) unlink(ROOT_DIR . '/' . $photoUrl);
-            $photoUrl = $uploaded;
+            $newPhoto = $uploaded;
         }
     }
 
     if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] === UPLOAD_ERR_OK) {
         $uploaded = Upload::file($_FILES['receipt'], 'expenses/receipts');
         if ($uploaded) {
-            if ($receiptUrl && file_exists(ROOT_DIR . '/' . $receiptUrl)) unlink(ROOT_DIR . '/' . $receiptUrl);
-            $receiptUrl = $uploaded;
+            $newReceipt = $uploaded;
         }
     }
 
@@ -137,9 +138,59 @@ try {
         ]
     );
 
+    // (CJ-07) Atualizar registos de documentos privados e limpar os antigos
+    $pendingFileDeletes = [];
+    if ($newPhoto) {
+        $oldDoc = $db->fetch(
+            "SELECT id, file_path FROM documents WHERE expense_id = ? AND kind = 'expense_photo' ORDER BY id DESC LIMIT 1",
+            [$expenseId]
+        );
+        if ($oldDoc) {
+            $db->execute("DELETE FROM documents WHERE id = ?", [$oldDoc['id']]);
+            if ($oldDoc['file_path'] && file_exists(ROOT_DIR . '/' . $oldDoc['file_path'])) {
+                $pendingFileDeletes[] = ROOT_DIR . '/' . $oldDoc['file_path'];
+            }
+        }
+        $db->execute(
+            "INSERT INTO documents (project_id, owner_id, expense_id, kind, file_path, original_name) VALUES (?, ?, ?, 'expense_photo', ?, ?)",
+            [$projectId, (int)$user['id'], $expenseId, $newPhoto, basename($newPhoto)]
+        );
+        $photoUrl = $newPhoto;
+    }
+
+    if ($newReceipt) {
+        $oldDoc = $db->fetch(
+            "SELECT id, file_path FROM documents WHERE expense_id = ? AND kind = 'receipt' ORDER BY id DESC LIMIT 1",
+            [$expenseId]
+        );
+        if ($oldDoc) {
+            $db->execute("DELETE FROM documents WHERE id = ?", [$oldDoc['id']]);
+            if ($oldDoc['file_path'] && file_exists(ROOT_DIR . '/' . $oldDoc['file_path'])) {
+                $pendingFileDeletes[] = ROOT_DIR . '/' . $oldDoc['file_path'];
+            }
+        }
+        $db->execute(
+            "INSERT INTO documents (project_id, owner_id, expense_id, kind, file_path, original_name) VALUES (?, ?, ?, 'receipt', ?, ?)",
+            [$projectId, (int)$user['id'], $expenseId, $newReceipt, basename($newReceipt)]
+        );
+        $receiptUrl = $newReceipt;
+    }
+
+    // Guardar os novos caminhos na linha da despesa
+    if ($newPhoto || $newReceipt) {
+        $db->execute(
+            "UPDATE expenses SET photo_url = ?, receipt_url = ? WHERE id = ?",
+            [$newPhoto ?: $photoUrl, $newReceipt ?: $receiptUrl, $expenseId]
+        );
+    }
+
+    foreach ($pendingFileDeletes as $oldFile) {
+        @unlink($oldFile);
+    }
+
     set_flash_message('success', 'Lançamento financeiro atualizado com sucesso!');
     json_ok([], 'Despesa atualizada.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao atualizar despesa.', 500);
+    json_internal_error('atualizar despesa', $e);
 }

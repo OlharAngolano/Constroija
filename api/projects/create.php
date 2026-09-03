@@ -89,5 +89,5 @@ try {
 
 } catch (PDOException $e) {
     $db->rollBack();
-    json_error('Erro técnico ao registar o projeto no servidor: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao registar o projeto no servidor: ', $e);
 }

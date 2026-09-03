@@ -14,7 +14,7 @@ $db = db();
 // 1. Procurar o projeto e o cargo do utilizador para validação
 try {
     $project = $db->fetch(
-        "SELECT p.*, COALESCE(pm.role, 'owner') AS role, pr.name AS owner_name, pr.phone AS owner_phone, pr.email AS owner_email, pr.username AS owner_username
+        "SELECT p.*, COALESCE(pm.role, 'owner') AS role, pr.name AS owner_name, pr.whatsapp AS owner_phone, pr.email AS owner_email, pr.username AS owner_username
          FROM projects p 
          LEFT JOIN project_managers pm ON p.id = pm.project_id AND pm.user_id = ?
          JOIN profiles pr ON p.user_id = pr.id
@@ -51,11 +51,13 @@ try {
         $shareToken = $publicLink['token'];
     }
 } catch (PDOException $e) {
-    die("Erro ao gerar as credenciais de partilha para a placa de obra: " . $e->getMessage());
+    page_error('Erro ao gerar as credenciais de partilha para a placa de obra: ', $e);
 }
 
 $publicReportUrl = APP_URL . '/report?token=' . $shareToken;
-$qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=' . urlencode($publicReportUrl);
+// (CJ-17) QR gerado LOCALMENTE no navegador (qrcode.bundle.js): o token do
+// relatório nunca é enviado para serviços externos.
+$nonce = Security::getNonce();
 
 $title = 'Placa de Obra Oficial: ' . sanitize($project['title']);
 ?>
@@ -72,7 +74,7 @@ $title = 'Placa de Obra Oficial: ' . sanitize($project['title']);
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
     
     <!-- Lucide Icons -->
-    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js" nonce="$nonce"></script>
 
     <style>
         :root {
@@ -359,7 +361,7 @@ $title = 'Placa de Obra Oficial: ' . sanitize($project['title']);
                 <i data-lucide="arrow-left" style="width:16px; height:16px;"></i>
                 Voltar
             </a>
-            <button onclick="window.print();" class="btn-print">
+            <button id="btn-print-signboard" type="button" class="btn-print">
                 <i data-lucide="printer" style="width:16px; height:16px;"></i>
                 Imprimir Placa (A4)
             </button>
@@ -447,7 +449,7 @@ $title = 'Placa de Obra Oficial: ' . sanitize($project['title']);
                     </p>
                 </div>
                 <div class="qr-code-wrapper">
-                    <img src="<?php echo $qrCodeUrl; ?>" alt="QR Code de Progresso da Obra" class="qr-image">
+                    <div id="qrcode-holder" class="qr-image" aria-label="QR Code de Progresso da Obra"></div>
                     <span class="qr-caption">Aponte a Câmara</span>
                 </div>
             </div>
@@ -462,11 +464,32 @@ $title = 'Placa de Obra Oficial: ' . sanitize($project['title']);
 
     </div>
 
-    <!-- Inicializar Ícones Lucide -->
-    <script>
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
+    <!-- Biblioteca QR local (MIT — ver assets/js/qrcode.LICENSE.txt) -->
+    <script src="<?php echo APP_URL; ?>/assets/js/qrcode.bundle.js" nonce="<?php echo $nonce; ?>"></script>
+
+    <script nonce="<?php echo $nonce; ?>">
+        // (CJ-17) QR gerado localmente; o URL com token não sai do navegador
+        document.addEventListener('DOMContentLoaded', function () {
+            var holder = document.getElementById('qrcode-holder');
+            var url = <?php echo json_encode($publicReportUrl); ?>;
+            if (holder && typeof QRCode !== 'undefined') {
+                new QRCode(holder, {
+                    text: url,
+                    width: 182,
+                    height: 182,
+                    colorDark: '#0f172a',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            }
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+            var printBtn = document.getElementById('btn-print-signboard');
+            if (printBtn) {
+                printBtn.addEventListener('click', function () { window.print(); });
+            }
+        });
     </script>
 </body>
 </html>

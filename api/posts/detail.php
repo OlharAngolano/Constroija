@@ -49,5 +49,5 @@ try {
     json_ok(['post' => $post], 'Detalhes da publicação carregados.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao aceder à publicação: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao aceder à publicação: ', $e);
 }

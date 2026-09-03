@@ -48,7 +48,7 @@ try {
     $popularTags = ['Betão Armado', 'Orçamentação', 'Fundações', 'Fiscalização', 'Alvenaria', 'Pinturas', 'Infiltrações', 'Instalações'];
 
 } catch (PDOException $e) {
-    die("Erro ao carregar Q&A Técnico: " . $e->getMessage());
+    page_error('Erro ao carregar Q&A Técnico: ', $e);
 }
 
 $title = 'Q&A Técnico de Construção — Constrói Já';
@@ -63,7 +63,7 @@ require_once __DIR__ . '/../../templates/header.php';
             <h2>Q&A Técnico de Engenharia & Construção</h2>
             <p style="color:var(--text-secondary); font-size:14px;">Tira as tuas dúvidas com engenheiros e construtores experientes em Angola.</p>
         </div>
-        <button onclick="openQuestionModal();" class="btn btn-primary" style="padding: 10px 20px;">
+        <button data-jsaction="openQuestionModal" class="btn btn-primary" style="padding: 10px 20px;">
             <i data-lucide="plus-circle" style="width:18px; height:18px;"></i>
             Fazer Pergunta
         </button>
@@ -102,7 +102,7 @@ require_once __DIR__ . '/../../templates/header.php';
                 <i data-lucide="help-circle" style="width:48px; height:48px; stroke-width:1; margin:0 auto 12px; color:var(--text-muted);"></i>
                 <p style="font-size:16px; font-weight:600; margin-bottom:4px;">Nenhuma pergunta encontrada</p>
                 <p style="font-size:14px; margin-bottom:16px;">Seja o primeiro a colocar a sua dúvida à comunidade civil!</p>
-                <button onclick="openQuestionModal();" class="btn btn-primary" style="margin: 0 auto;">Fazer uma Pergunta</button>
+                <button data-jsaction="openQuestionModal" class="btn btn-primary" style="margin: 0 auto;">Fazer uma Pergunta</button>
             </div>
         <?php else: ?>
             <?php foreach ($questions as $question): ?>
@@ -165,10 +165,10 @@ require_once __DIR__ . '/../../templates/header.php';
                 <i data-lucide="help-circle"></i>
                 Fazer Nova Pergunta
             </h3>
-            <button onclick="closeQuestionModal();" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
+            <button data-jsaction="closeQuestionModal" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
         </div>
 
-        <form id="question-form" onsubmit="event.preventDefault(); submitQuestion();" style="display:flex; flex-direction:column; gap:16px;">
+        <form id="question-form" data-jsaction="submitQuestion" data-jsprevent="1" style="display:flex; flex-direction:column; gap:16px;">
             <div class="form-group">
                 <label for="modal-title" style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Título da Pergunta</label>
                 <input type="text" id="modal-title" class="form-control" placeholder="Ex: Qual a dosagem recomendada de cimento para fundações de betão armado?" required style="width:100%;">
@@ -186,7 +186,7 @@ require_once __DIR__ . '/../../templates/header.php';
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:8px;">
-                <button type="button" onclick="closeQuestionModal();" class="btn btn-secondary" style="padding:10px 20px;">Cancelar</button>
+                <button type="button" data-jsaction="closeQuestionModal" class="btn btn-secondary" style="padding:10px 20px;">Cancelar</button>
                 <button type="submit" id="submit-question-btn" class="btn btn-primary" style="padding:10px 20px;">
                     Publicar Pergunta
                     <i data-lucide="send" style="width:16px; height:16px;"></i>

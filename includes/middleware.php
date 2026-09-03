@@ -18,28 +18,31 @@ function middleware_require_admin(): void {
 }
 
 /**
- * Middleware para validar chamadas API com autenticação e CSRF
+ * Middleware para validar chamadas API com autenticação.
+ *
+ * O CSRF é validado em cada endpoint de escrita (métodos POST/PUT/DELETE) —
+ * nunca em leituras GET, que são idempotentes (auditoria CJ-18).
  */
 function middleware_api_auth(): array {
-    // 1. Validar CSRF
-    if (!validate_csrf()) {
-        json_error('Token CSRF inválido ou ausente.', 403);
-    }
-    
-    // 2. Verificar se o user está logado
+    // Verificar se o user está logado
     $user = current_user();
     if (!$user) {
         json_error('Não autorizado. Sessão expirada.', 401);
     }
-    
-    // 3. Verificar suspensão / trial expirado
+
+    // Distinguir moderação de conta de expiração de subscrição (auditoria CJ-11):
+    // - status 'suspended' só é definido por administração;
+    // - premium expirado NÃO suspende a conta: apenas bloqueia o acesso com mensagem própria.
     if ((int)($user['is_admin'] ?? 0) === 0) {
+        if (($user['status'] ?? '') === 'suspended') {
+            json_error('A sua conta foi suspensa pela administração. Contacte o suporte.', 403);
+        }
         $isExpired = !empty($user['subscription_expires_at']) && $user['subscription_expires_at'] < date('Y-m-d H:i:s');
-        if ($isExpired || ($user['status'] ?? '') === 'suspended') {
-            json_error('A sua conta está suspensa. Por favor, regularize o pagamento.', 403);
+        if ($isExpired) {
+            json_error('A sua subscrição expirou. Renove em /subscription para continuar.', 403);
         }
     }
-    
+
     return $user;
 }
 

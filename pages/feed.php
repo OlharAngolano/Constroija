@@ -32,7 +32,7 @@ $suggestions = $db->fetchAll(
         <!-- STORIES DE OBRAS E ENGENHEIROS (Premium look) -->
         <div class="stories-container">
             <!-- Story do próprio user para criar nova obra -->
-            <div class="story-card" onclick="window.location.href='/projects/create'">
+            <div class="story-card" data-jsaction="__go__" data-jsarg="/projects/create">
                 <div class="story-avatar-wrap" style="border-color:var(--accent-secondary); background:rgba(59,130,246,0.1);">
                     <i data-lucide="plus" style="width:24px; height:24px; color:var(--accent-secondary);"></i>
                 </div>
@@ -40,7 +40,7 @@ $suggestions = $db->fetchAll(
             </div>
             
             <?php foreach ($suggestions as $sug): ?>
-            <div class="story-card" onclick="window.location.href='/profile/<?php echo sanitize($sug['username']); ?>'">
+            <div class="story-card" data-jsaction="__go__" data-jsarg="/profile/<?php echo sanitize($sug['username']); ?>">
                 <div class="story-avatar-wrap">
                     <img src="<?php echo get_avatar_url($sug['avatar_url'], $sug['name']); ?>" class="story-avatar">
                 </div>
@@ -51,7 +51,7 @@ $suggestions = $db->fetchAll(
 
         <!-- FORMULÁRIO DE PUBLICAÇÃO DE NOVO POST -->
         <div class="post-card-fb" style="margin-bottom:12px;">
-            <form id="create-post-form" onsubmit="event.preventDefault(); publishPost();" style="padding:16px;">
+            <form id="create-post-form" data-jsaction="publishPost" data-jsprevent="1" style="padding:16px;">
                 <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:12px;">
                     <img src="<?php echo get_avatar_url($user['avatar_url'], $user['name']); ?>" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
                     <textarea id="post-content" class="post-card-fb__comment-input" placeholder="O que está a acontecer na sua obra hoje?" style="min-height:60px; border-radius:var(--radius-md); resize:vertical; padding:12px 16px;"></textarea>
@@ -86,13 +86,13 @@ $suggestions = $db->fetchAll(
 
         <!-- TABS DE FEED DE ÚLTIMA GERAÇÃO (WOW design) -->
         <div class="feed-tabs" style="display:flex; border-bottom:1px solid var(--border-color); margin-bottom:8px; gap:8px;">
-            <button onclick="App.Feed.switchTab('all')" class="feed-tab-btn active" id="tab-btn-all" style="flex:1; padding:12px; background:none; border:none; color:var(--text-primary); font-weight:700; cursor:pointer; border-bottom:2px solid var(--accent-primary); font-size:14px; transition: all 0.2s;">
+            <button data-jsaction="App.Feed.switchTab" data-jsarg="all" class="feed-tab-btn active" id="tab-btn-all" style="flex:1; padding:12px; background:none; border:none; color:var(--text-primary); font-weight:700; cursor:pointer; border-bottom:2px solid var(--accent-primary); font-size:14px; transition: all 0.2s;">
                 Todas as Publicações
             </button>
-            <button onclick="App.Feed.switchTab('following')" class="feed-tab-btn" id="tab-btn-following" style="flex:1; padding:12px; background:none; border:none; color:var(--text-muted); font-weight:700; cursor:pointer; font-size:14px; transition: all 0.2s;">
+            <button data-jsaction="App.Feed.switchTab" data-jsarg="following" class="feed-tab-btn" id="tab-btn-following" style="flex:1; padding:12px; background:none; border:none; color:var(--text-muted); font-weight:700; cursor:pointer; font-size:14px; transition: all 0.2s;">
                 Quem eu Sigo
             </button>
-            <button onclick="App.Feed.switchTab('reels')" class="feed-tab-btn" id="tab-btn-reels" style="flex:1; padding:12px; background:none; border:none; color:var(--text-muted); font-weight:700; cursor:pointer; font-size:14px; transition: all 0.2s;">
+            <button data-jsaction="App.Feed.switchTab" data-jsarg="reels" class="feed-tab-btn" id="tab-btn-reels" style="flex:1; padding:12px; background:none; border:none; color:var(--text-muted); font-weight:700; cursor:pointer; font-size:14px; transition: all 0.2s;">
                 🎥 Reels de Obras
             </button>
         </div>
@@ -105,7 +105,7 @@ $suggestions = $db->fetchAll(
         <!-- INDICADOR DE PESQUISA / HASHTAG -->
         <div id="feed-search-indicator" style="display:none; align-items:center; justify-content:space-between; background:rgba(249,115,22,0.1); border:1px solid var(--accent-primary); padding:10px 16px; border-radius:var(--radius-sm); margin-bottom:16px;">
             <span style="color:var(--text-primary); font-size:14px;">A mostrar publicações com: <strong id="feed-search-tag" style="color:var(--accent-primary);">#tag</strong></span>
-            <button onclick="App.Feed.clearSearch()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:4px; font-size:13px;">
+            <button data-jsaction="App.Feed.clearSearch" style="background:none; border:none; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:4px; font-size:13px;">
                 <i data-lucide="x" style="width:16px; height:16px;"></i> Limpar Filtro
             </button>
         </div>
@@ -244,7 +244,7 @@ async function publishPost() {
             <div style="display:flex; flex-direction:column; gap:16px;">
                 <?php foreach ($suggestions as $sug): ?>
                 <div style="display:flex; align-items:center; justify-content:between; gap:12px;">
-                    <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="window.location.href='/profile/<?php echo sanitize($sug['username']); ?>'">
+                    <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" data-jsaction="__go__" data-jsarg="/profile/<?php echo sanitize($sug['username']); ?>">
                         <img src="<?php echo get_avatar_url($sug['avatar_url'], $sug['name']); ?>" class="avatar avatar-sm">
                         <div>
                             <span style="font-weight:600; font-size:13px; display:flex; align-items:center; gap:4px; color:var(--text-primary);">

@@ -38,7 +38,7 @@ try {
     );
 
 } catch (PDOException $e) {
-    die("Erro ao carregar dados de administração: " . $e->getMessage());
+    page_error('Erro ao carregar dados de administração: ', $e);
 }
 
 $title = 'Painel de Administração — Constrói Já';

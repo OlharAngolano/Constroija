@@ -35,5 +35,5 @@ try {
     json_ok([], 'Parceiro B2B removido com sucesso!');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao remover parceiro B2B: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao remover parceiro B2B: ', $e);
 }

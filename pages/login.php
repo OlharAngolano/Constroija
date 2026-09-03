@@ -22,7 +22,7 @@ require_once __DIR__ . '/../templates/header.php';
             <p style="color:var(--text-secondary); font-size:14px; margin-top:6px;">Aceda à gestão financeira das suas obras</p>
         </div>
 
-        <form id="login-form" onsubmit="event.preventDefault(); handleLogin();" novalidate>
+        <form id="login-form" data-jsaction="handleLogin" data-jsprevent="1" novalidate>
             <div class="form-group">
                 <label for="email" class="form-label">Email</label>
                 <input type="email" id="email" class="form-control" placeholder="exemplo@dominio.ao" required autocomplete="email">
@@ -35,7 +35,7 @@ require_once __DIR__ . '/../templates/header.php';
                 </div>
                 <div style="position:relative; display:flex; align-items:center;">
                     <input type="password" id="password" class="form-control" placeholder="••••••••" required autocomplete="current-password" style="padding-right: 44px; width: 100%;">
-                    <button type="button" onclick="togglePasswordVisibility('password', this)" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
+                    <button type="button" data-jsaction="togglePasswordVisibility" data-jsarg="password" data-jselement="1" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
                         <i data-lucide="eye" style="width:18px; height:18px;"></i>
                     </button>
                 </div>

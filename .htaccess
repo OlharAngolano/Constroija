@@ -96,8 +96,9 @@ Options -Indexes
 # 2. Desativar a adição automática de barras finais pelo Apache (mod_dir)
 DirectorySlash Off
 
-# 3. Definir limite de upload no Apache para 10MB
-LimitRequestBody 10485760
+# 3. Limite de upload no Apache: 60 MB (vídeos até 50 MB + overhead multipart;
+#    imagens/documentos até 10 MB) — harmonizado com includes/upload.php (CJ-08)
+LimitRequestBody 62914560
 
 # 4. Bloquear leitura direta de ficheiros confidenciais (.env, .git, .htaccess)
 <FilesMatch "^\.">
@@ -122,7 +123,20 @@ LimitRequestBody 10485760
 </FilesMatch>
 
 # 6. Bloquear acesso a pastas confidenciais internas
-RedirectMatch 403 ^/(config|includes|logs|scratch)(/|$)
+RedirectMatch 403 ^/(config|includes|logs|scratch|bin|storage|migrations|database|templates)(/|$)
+
+# 6b. (CJ-10) Endpoints PHP só podem ser executados através do front controller.
+#      Bloquear acesso HTTP direto a ficheiros .php reais em api/, pages/ e templates/;
+#      as rotas amigáveis (sem extensão) continuam a ser reencaminhadas para index.php.
+RewriteCond %{REQUEST_URI} ^/(api|pages|templates)/ [NC]
+RewriteCond %{REQUEST_URI} \.php$ [NC]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule .* - [F,L]
+
+# 6c. (CJ-07) Recibos e fotos de despesas são PRIVADOS: qualquer acesso direto
+#      por URL é negado. São servidos apenas por /api/files com autorização.
+RewriteCond %{REQUEST_URI} ^/uploads/expenses/ [NC]
+RewriteRule .* - [F,L]
 
 # =================================================================
 # MOTOR DE REESCRITA (URL Routing)

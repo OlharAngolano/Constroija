@@ -10,34 +10,8 @@ middleware_require_auth();
 $user = current_user();
 $db = db();
 
-// Auto-migração da tabela 'vendor_stores' e 'marketplace_products'
-try {
-    $db->execute("
-        CREATE TABLE IF NOT EXISTS vendor_stores (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL UNIQUE,
-            store_name VARCHAR(255) NOT NULL,
-            logo_url VARCHAR(500) DEFAULT NULL,
-            banner_url VARCHAR(500) DEFAULT NULL,
-            category VARCHAR(50) NOT NULL DEFAULT 'construcao',
-            description TEXT DEFAULT NULL,
-            whatsapp VARCHAR(50) NOT NULL,
-            location VARCHAR(255) DEFAULT 'Luanda, Angola',
-            is_verified TINYINT(1) DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
-    try {
-        $db->query("SELECT vendor_store_id FROM marketplace_products LIMIT 1");
-    } catch (PDOException $eCol) {
-        $db->execute("ALTER TABLE marketplace_products ADD COLUMN vendor_store_id INT DEFAULT NULL");
-        $db->execute("ALTER TABLE marketplace_products ADD COLUMN stock_status VARCHAR(20) NOT NULL DEFAULT 'in_stock'");
-    }
-} catch (PDOException $e) {
-    // Tabela pronta
-}
+// (CJ-09) Sem DDL em runtime: vendor_stores/marketplace_products são criadas
+// por migrações (bin/migrate.php).
 
 // Obter ou auto-inicializar dados da loja do vendedor
 $store = $db->fetch("SELECT * FROM vendor_stores WHERE user_id = ?", [$user['id']]);
@@ -212,11 +186,11 @@ require_once __DIR__ . '/../../templates/header.php';
 
     <!-- ABAS DE GESTÃO DA LOJA -->
     <div class="tab-btn-group">
-        <button class="tab-btn active" id="tab-btn-products" onclick="switchVendorTab('products')">
+        <button class="tab-btn active" id="tab-btn-products"  data-jsaction="switchVendorTab" data-jsarg="products">
             <i data-lucide="box"></i>
             Catálogo de Produtos (<?php echo count($products); ?>)
         </button>
-        <button class="tab-btn" id="tab-btn-settings" onclick="switchVendorTab('settings')">
+        <button class="tab-btn" id="tab-btn-settings"  data-jsaction="switchVendorTab" data-jsarg="settings">
             <i data-lucide="sliders"></i>
             Perfil e Contactos da Loja
         </button>
@@ -228,7 +202,7 @@ require_once __DIR__ . '/../../templates/header.php';
             <h3 style="font-family:'Outfit', sans-serif; font-size:18px; font-weight:800; margin:0;">
                 Produtos Anunciados na Loja
             </h3>
-            <button onclick="openVendorProductModal()" class="btn btn-primary" style="background:#10b981; border-color:#10b981; font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px;">
+            <button  data-jsaction="openVendorProductModal" class="btn btn-primary" style="background:#10b981; border-color:#10b981; font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px;">
                 <i data-lucide="plus-circle" style="width:16px; height:16px;"></i>
                 Adicionar Novo Produto
             </button>
@@ -290,10 +264,10 @@ require_once __DIR__ . '/../../templates/header.php';
                                     </td>
                                     <td data-label="Ações" style="padding:14px; text-align:right;">
                                         <div style="display:flex; justify-content:flex-end; gap:8px;">
-                                            <button class="btn btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="openVendorProductModal(<?php echo sanitize(json_encode($p)); ?>)">
+                                            <button class="btn btn-secondary" style="font-size:12px; padding:6px 10px;"  data-jsaction="openVendorProductModal" data-jsarg="<?php echo sanitize(json_encode($p)); ?>">
                                                 <i data-lucide="edit-3" style="width:14px; height:14px;"></i> Editar
                                             </button>
-                                            <button class="btn btn-primary" style="font-size:12px; padding:6px 10px; background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);" onclick="deleteVendorStoreProduct(<?php echo $p['id']; ?>)">
+                                            <button class="btn btn-primary" style="font-size:12px; padding:6px 10px; background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"  data-jsaction="deleteVendorStoreProduct" data-jsarg="<?php echo (int)$p['id']; ?>">
                                                 <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                                             </button>
                                         </div>
@@ -315,7 +289,7 @@ require_once __DIR__ . '/../../templates/header.php';
                 Definições do Perfil da Empresa / Loja
             </h3>
 
-            <form id="vendor-store-form" onsubmit="event.preventDefault(); submitVendorStore();" enctype="multipart/form-data">
+            <form id="vendor-store-form"  data-jsaction="submitVendorStore" data-jsprevent="1" enctype="multipart/form-data">
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
                     <div class="form-group">
                         <label for="store-name" style="display:block; font-size:12px; margin-bottom:6px;">Nome Comercial da Empresa / Loja *</label>
@@ -378,14 +352,14 @@ require_once __DIR__ . '/../../templates/header.php';
 <!-- MODAL: ADICIONAR / EDITAR PRODUTO DA LOJA -->
 <div class="modal" id="vendor-product-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2300; align-items:center; justify-content:center; backdrop-filter:blur(6px); padding:20px;">
     <div class="card slideUp" style="width:100%; max-width:540px; padding:24px; position:relative; margin:auto;">
-        <button onclick="closeVendorProductModal()" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button  data-jsaction="closeVendorProductModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
 
         <h3 id="vp-modal-title" style="margin-bottom:20px; font-family:'Outfit', sans-serif; font-weight:800; font-size:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="box" style="color:var(--accent-primary);"></i>
             Adicionar Produto à Loja
         </h3>
 
-        <form id="vendor-product-form" onsubmit="event.preventDefault(); submitVendorProduct();" enctype="multipart/form-data">
+        <form id="vendor-product-form"  data-jsaction="submitVendorProduct" data-jsprevent="1" enctype="multipart/form-data">
             <input type="hidden" id="vp-id">
 
             <div class="form-group" style="margin-bottom:14px;">
@@ -448,7 +422,7 @@ require_once __DIR__ . '/../../templates/header.php';
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeVendorProductModal()">Cancelar</button>
+                <button type="button" class="btn btn-secondary"  data-jsaction="closeVendorProductModal">Cancelar</button>
                 <button type="submit" id="vp-save-btn" class="btn btn-primary" style="background:#10b981; border-color:#10b981; font-weight:700;">Guardar Produto</button>
             </div>
         </form>

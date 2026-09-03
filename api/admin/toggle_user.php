@@ -75,5 +75,5 @@ try {
     ], $msg);
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao atualizar estado do utilizador: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao atualizar estado do utilizador: ', $e);
 }

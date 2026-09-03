@@ -86,11 +86,11 @@ try {
         [$name, $username, $bio, $location, $whatsapp, $website, $language, $currency, $portfolioJson, $user['id']]
     );
 
-    // Atualizar dados da sessão
+    // Atualizar dados da sessão — apenas campos seguros (CJ-04)
     $updatedUser = $db->fetch("SELECT * FROM profiles WHERE id = ?", [$user['id']]);
-    $_SESSION['user'] = $updatedUser;
+    $_SESSION['user'] = user_session_dto($updatedUser);
 
-    json_ok(['user' => $updatedUser], 'Perfil atualizado com sucesso!');
+    json_ok(['user' => user_public_dto($updatedUser)], 'Perfil atualizado com sucesso!');
 } catch (PDOException $e) {
-    json_error('Erro técnico ao atualizar perfil: ' . $e->getMessage(), 500);
+    json_internal_error('atualizar perfil', $e);
 }

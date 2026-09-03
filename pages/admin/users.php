@@ -30,7 +30,7 @@ try {
     $profiles = $db->fetchAll($sql, $params);
 
 } catch (PDOException $e) {
-    die("Erro ao pesquisar utilizadores: " . $e->getMessage());
+    page_error('Erro ao pesquisar utilizadores: ', $e);
 }
 
 $title = 'Gestão de Utilizadores — Constrói Já';
@@ -154,7 +154,7 @@ require_once __DIR__ . '/../../templates/header.php';
                                         <!-- Impedir que o administrador suspenda a si próprio -->
                                         <?php if ($profile['id'] !== $user['id'] && (int)$profile['is_admin'] !== 1): ?>
                                             <button id="btn-toggle-<?php echo $profile['id']; ?>" 
-                                                    onclick="toggleUserStatus(<?php echo $profile['id']; ?>, '<?php echo $profile['status'] === 'active' ? 'suspended' : 'active'; ?>')" 
+                                                    data-jsaction="toggleUserStatus" data-jsarg="<?php echo (int)$profile['id']; ?>" data-jsarg2="<?php echo $profile['status'] === 'active' ? 'suspended' : 'active'; ?>" 
                                                     class="btn <?php echo $profile['status'] === 'active' ? 'btn-secondary' : 'btn-primary'; ?>" 
                                                     style="font-size:12px; padding:6px 12px;">
                                                 <i id="icon-toggle-<?php echo $profile['id']; ?>" data-lucide="<?php echo $profile['status'] === 'active' ? 'user-x' : 'user-check'; ?>" style="width:14px; height:14px;"></i>
@@ -214,15 +214,15 @@ async function toggleUserStatus(userId, newStatus) {
                 btn.className = "btn btn-secondary";
                 textSpan.textContent = "Suspender";
                 icon.setAttribute('data-lucide', 'user-x');
-                // Alterar callback para o próximo clique
-                btn.setAttribute('onclick', `toggleUserStatus(${userId}, 'suspended')`);
+                // (CJ-12) Atualizar o estado declarativo para o próximo clique
+                btn.dataset.jsarg2 = 'suspended';
             } else {
                 cell.innerHTML = '<span class="badge" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 11px;">Suspenso</span>';
                 btn.className = "btn btn-primary";
                 textSpan.textContent = "Ativar";
                 icon.setAttribute('data-lucide', 'user-check');
-                // Alterar callback para o próximo clique
-                btn.setAttribute('onclick', `toggleUserStatus(${userId}, 'active')`);
+                // (CJ-12) Atualizar o estado declarativo para o próximo clique
+                btn.dataset.jsarg2 = 'active';
             }
 
             if (window.lucide) {

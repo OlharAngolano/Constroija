@@ -86,6 +86,23 @@ try {
         json_error('Erro ao guardar os dados da despesa.');
     }
 
+    $expenseId = (int)$db->lastInsertId();
+
+    // (CJ-07) Indexar os documentos privados (recibos/fotos) para servir via /api/files
+    $attachments = [];
+    if ($photoUrl) {
+        $attachments[] = [$projectId, (int)$user['id'], $expenseId, 'expense_photo', $photoUrl];
+    }
+    if ($receiptUrl) {
+        $attachments[] = [$projectId, (int)$user['id'], $expenseId, 'receipt', $receiptUrl];
+    }
+    foreach ($attachments as $att) {
+        $db->execute(
+            "INSERT INTO documents (project_id, owner_id, expense_id, kind, file_path, original_name) VALUES (?, ?, ?, ?, ?, ?)",
+            [$att[0], $att[1], $att[2], $att[3], $att[4], basename($att[4])]
+        );
+    }
+
     set_flash_message('success', "Despesa \"{$name}\" lançada com sucesso!");
     json_ok([], 'Despesa lançada com sucesso.');
 

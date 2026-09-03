@@ -44,7 +44,7 @@ try {
     );
 
 } catch (PDOException $e) {
-    die("Erro ao carregar detalhes da pergunta: " . $e->getMessage());
+    page_error('Erro ao carregar detalhes da pergunta: ', $e);
 }
 
 $title = sanitize($question['title']) . " — Constrói Já";
@@ -145,7 +145,7 @@ require_once __DIR__ . '/../../templates/header.php';
             A sua Resposta Técnica
         </h4>
 
-        <form id="answer-form" onsubmit="event.preventDefault(); submitAnswer();" style="display:flex; flex-direction:column; gap:14px;">
+        <form id="answer-form" data-jsaction="submitAnswer" data-jsprevent="1" style="display:flex; flex-direction:column; gap:14px;">
             <div class="form-group">
                 <textarea id="answer-content" class="form-control" placeholder="Escreva a sua resposta técnica fundamentada para ajudar este construtor..." required style="width:100%; min-height:120px; line-height:1.6;"></textarea>
             </div>

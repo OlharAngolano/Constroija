@@ -41,7 +41,7 @@ try {
         </div>
         
         <?php if (!empty($notifications)): ?>
-            <button class="btn btn-secondary" onclick="App.Notifications.markAllRead();" style="font-size:13px; padding: 8px 16px;">
+            <button class="btn btn-secondary" data-jsaction="App.Notifications.markAllRead" style="font-size:13px; padding: 8px 16px;">
                 <i data-lucide="check-check" style="width:16px; height:16px;"></i>
                 Marcar todas como lidas
             </button>
@@ -104,7 +104,7 @@ try {
                     $isUnread = !(bool)$n['is_read'];
                     ?>
                     
-                    <a href="<?php echo $link; ?>" onclick="markRead(<?php echo $n['id']; ?>)" class="notification-item-link" style="display: flex; gap: 16px; padding: 20px; align-items: center; border-bottom: 1px solid var(--border-color); background: <?php echo $isUnread ? 'rgba(249, 115, 22, 0.03)' : 'transparent'; ?>; transition: var(--transition-fast);">
+                    <a href="<?php echo $link; ?>" data-jsaction="markRead" data-jsarg="<?php echo (int)$n['id']; ?>" class="notification-item-link" style="display: flex; gap: 16px; padding: 20px; align-items: center; border-bottom: 1px solid var(--border-color); background: <?php echo $isUnread ? 'rgba(249, 115, 22, 0.03)' : 'transparent'; ?>; transition: var(--transition-fast);">
                         <!-- Avatar com Ícone tipo Badge -->
                         <div style="position:relative;">
                             <img src="<?php echo get_avatar_url($n['sender_avatar'], $n['sender_name']); ?>" class="avatar avatar-md" style="width:44px; height:44px; border: 2px solid <?php echo $isUnread ? 'var(--accent-primary)' : 'transparent'; ?>;">

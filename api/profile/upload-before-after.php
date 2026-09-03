@@ -112,5 +112,5 @@ try {
     ], 'Portfólio interativo atualizado com sucesso!');
 
 } catch (PDOException $e) {
-    json_error('Erro na base de dados ao atualizar portfólio: ' . $e->getMessage(), 500);
+    json_internal_error('Erro na base de dados ao atualizar portfólio: ', $e);
 }

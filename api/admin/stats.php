@@ -46,5 +46,5 @@ try {
     ], 'Métricas de administração carregadas com sucesso.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao consultar métricas de administração: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao consultar métricas de administração: ', $e);
 }

@@ -120,7 +120,7 @@ try {
         }
     }
 } catch (PDOException $e) {
-    die("Erro ao processar relatório público: " . $e->getMessage());
+    page_error('Erro ao processar relatório público: ', $e);
 }
 
 $title = $isValid ? "Relatório Unificado: " . sanitize($project['title']) . " — Constrói Já" : "Relatório Inválido";
@@ -474,20 +474,20 @@ require_once __DIR__ . '/../templates/header.php';
 
         <!-- BARRA DE SELEÇÃO DE TABS E EXPORTAÇÃO PDF -->
         <div class="report-tabs-bar no-print">
-            <button class="report-tab-btn active" id="btn-tab-dashboard" onclick="switchReportTab('dashboard')">
+            <button class="report-tab-btn active" id="btn-tab-dashboard" data-jsaction="switchReportTab" data-jsarg="dashboard">
                 <i data-lucide="layout-dashboard" style="width: 15px; height: 15px;"></i>
                 Painel Financeiro
             </button>
-            <button class="report-tab-btn" id="btn-tab-budget" onclick="switchReportTab('budget')">
+            <button class="report-tab-btn" id="btn-tab-budget" data-jsaction="switchReportTab" data-jsarg="budget">
                 <i data-lucide="calculator" style="width: 15px; height: 15px;"></i>
                 Orçamento de Obra
             </button>
-            <button class="report-tab-btn" id="btn-tab-prebudget" onclick="switchReportTab('prebudget')">
+            <button class="report-tab-btn" id="btn-tab-prebudget" data-jsaction="switchReportTab" data-jsarg="prebudget">
                 <i data-lucide="clipboard-list" style="width: 15px; height: 15px;"></i>
                 Pré-Orçamento Planeado
             </button>
 
-            <button class="btn btn-primary" onclick="downloadUnifiedPDF()" style="margin-left: auto; background: var(--accent-primary); border: none; font-weight: 700; height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-md); box-shadow: 0 4px 15px rgba(249,115,22,0.25);">
+            <button class="btn btn-primary" data-jsaction="downloadUnifiedPDF" style="margin-left: auto; background: var(--accent-primary); border: none; font-weight: 700; height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-md); box-shadow: 0 4px 15px rgba(249,115,22,0.25);">
                 <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
                 Baixar PDF Unificado
             </button>
@@ -579,7 +579,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     <th class="excel-text-right">Preço Unitário</th>
                                     <th class="excel-text-center">Quantidade</th>
                                     <th class="excel-text-right">Total Gasto</th>
-                                    <th class="excel-text-center no-print">Recibo</th>
+                                    <th class="excel-text-center no-print">Comprovativo</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -608,15 +608,8 @@ require_once __DIR__ . '/../templates/header.php';
                                             <td data-label="Preço Unitário" class="excel-text-right"><?php echo format_currency((float)$exp['price'], $currency); ?></td>
                                             <td data-label="Quant." class="excel-text-center"><?php echo (float)$exp['quantity'] . ' ' . sanitize($exp['unit']); ?></td>
                                             <td data-label="Total Gasto" class="excel-text-right" style="font-weight: 700; color: var(--text-primary);"><?php echo format_currency((float)$exp['price'] * (float)$exp['quantity'], $currency); ?></td>
-                                            <td data-label="Recibo" class="excel-text-center no-print">
-                                                <?php if (!empty($exp['receipt_url'])): ?>
-                                                    <a href="<?php echo APP_URL . '/' . $exp['receipt_url']; ?>" target="_blank" class="btn btn-secondary" style="font-size:11px; padding: 4px 8px; width: fit-content; display: inline-flex; align-items: center; gap: 4px;">
-                                                        <i data-lucide="eye" style="width: 12px; height: 12px;"></i>
-                                                        Anexo
-                                                    </a>
-                                                <?php else: ?>
-                                                    <span style="color:var(--text-muted); font-size:11px; font-style:italic;">Sem anexo</span>
-                                                <?php endif; ?>
+                                            <td data-label="Comprovativo" class="excel-text-center no-print" title="Comprovativos de compra visíveis apenas para a equipa do projeto (privacidade)">
+                                                <span style="color:var(--text-muted); font-size:11px; font-style:italic;">Privado (equipa)</span>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

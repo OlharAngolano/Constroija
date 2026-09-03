@@ -228,8 +228,11 @@ require_once __DIR__ . '/../../templates/header.php';
 <?php
 
 // 2. Procurar despesas ativas (não eliminadas)
+// (CJ-07) anexos privados referenciados por id de documents (servidos via /api/files)
 $expenses = $db->fetchAll(
-    "SELECT e.*, pr.name AS registrant_name 
+    "SELECT e.*, pr.name AS registrant_name,
+            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'receipt' ORDER BY d.id DESC LIMIT 1) AS receipt_file_id,
+            (SELECT d.id FROM documents d WHERE d.expense_id = e.id AND d.kind = 'expense_photo' ORDER BY d.id DESC LIMIT 1) AS photo_file_id
      FROM expenses e 
      JOIN profiles pr ON e.user_id = pr.id 
      WHERE e.project_id = ? AND e.deleted_at IS NULL 
@@ -330,9 +333,11 @@ if ($budget <= 0.00) {
     }
 }
 
-$spentPercent = $budget > 0 ? min(100, ($totalSpent / $budget) * 100) : 0;
-$remainingBudget = max(0.00, $budget - $totalSpent);
-$cashBalance = max(0.00, $totalFunds - $totalSpent);
+// (§5) Valores reais: a derrapagem e o saldo negativo não ficam escondidos
+// (apenas as barras visuais são limitadas a 100%)
+$spentPercent = $budget > 0 ? ($totalSpent / $budget) * 100 : 0.00;
+$remainingBudget = $budget - $totalSpent;
+$cashBalance = $totalFunds - $totalSpent;
 
 // Nomes traduzidos de despesas
 $typeTranslations = [
@@ -355,11 +360,11 @@ $typeTranslations = [
         
         <?php if (in_array($project['role'], ['owner', 'manager'])): ?>
             <div class="financials-actions" style="display:flex; gap:10px;">
-                <button class="btn btn-secondary" onclick="openAddFundsModal();" style="font-size:13px; padding: 8px 16px;">
+                <button class="btn btn-secondary" data-jsaction="openAddFundsModal" style="font-size:13px; padding: 8px 16px;">
                     <i data-lucide="wallet" style="width:16px; height:16px; color:var(--accent-success);"></i>
                     Inserir Fundos (Aporte)
                 </button>
-                <button class="btn btn-primary" onclick="openAddExpenseModal();" style="font-size:13px; padding: 8px 16px;">
+                <button class="btn btn-primary" data-jsaction="openAddExpenseModal" style="font-size:13px; padding: 8px 16px;">
                     <i data-lucide="plus" style="width:16px; height:16px;"></i>
                     Lançar Despesa
                 </button>
@@ -453,15 +458,15 @@ $typeTranslations = [
     <div class="card" style="padding:0; overflow:hidden;">
         <!-- Navegação Tabs -->
         <div class="financials-tabs" style="display:flex; border-bottom:1px solid var(--border-color); background:rgba(255,255,255,0.01);">
-            <button class="btn tab-btn active" id="tab-expenses-btn" onclick="switchTab('expenses')" style="border-radius:0; padding:16px 24px; border-bottom: 2px solid var(--accent-primary);">
+            <button class="btn tab-btn active" id="tab-expenses-btn" data-jsaction="switchTab" data-jsarg="expenses" style="border-radius:0; padding:16px 24px; border-bottom: 2px solid var(--accent-primary);">
                 <i data-lucide="shopping-bag" style="width:16px; height:16px; color:var(--accent-primary);"></i>
                 Lançamentos de Despesas
             </button>
-            <button class="btn tab-btn" id="tab-funds-btn" onclick="switchTab('funds')" style="border-radius:0; padding:16px 24px;">
+            <button class="btn tab-btn" id="tab-funds-btn" data-jsaction="switchTab" data-jsarg="funds" style="border-radius:0; padding:16px 24px;">
                 <i data-lucide="landmark" style="width:16px; height:16px; color:var(--accent-success);"></i>
                 Histórico de Aportes (Fundos)
             </button>
-            <button class="btn tab-btn" id="tab-prebudget-btn" onclick="switchTab('prebudget')" style="border-radius:0; padding:16px 24px;">
+            <button class="btn tab-btn" id="tab-prebudget-btn" data-jsaction="switchTab" data-jsarg="prebudget" style="border-radius:0; padding:16px 24px;">
                 <i data-lucide="clipboard-list" style="width:16px; height:16px; color:var(--accent-secondary);"></i>
                 Pré-Orçamento (Planeamento)
             </button>
@@ -513,11 +518,11 @@ $typeTranslations = [
                                 <td data-label="Data" style="padding:12px 8px; white-space:nowrap;"><?php echo date('d/m/Y', strtotime($exp['purchase_date'])); ?></td>
                                 <td data-label="Anexos" style="padding:12px 8px; white-space:nowrap;">
                                     <div style="display:flex; gap:8px;">
-                                        <?php if ($exp['photo_url']): ?>
-                                            <a href="<?php echo APP_URL . '/' . $exp['photo_url']; ?>" target="_blank" title="Foto do produto" style="color:var(--accent-primary);"><i data-lucide="image" style="width:16px; height:16px;"></i></a>
+                                        <?php if (!empty($exp['photo_file_id'])): ?>
+                                            <a href="<?php echo APP_URL; ?>/api/files?id=<?php echo (int)$exp['photo_file_id']; ?>" target="_blank" title="Foto do produto (privada)" style="color:var(--accent-primary);"><i data-lucide="image" style="width:16px; height:16px;"></i></a>
                                         <?php endif; ?>
-                                        <?php if ($exp['receipt_url']): ?>
-                                            <a href="<?php echo APP_URL . '/' . $exp['receipt_url']; ?>" target="_blank" title="Recibo de compra" style="color:var(--accent-secondary);"><i data-lucide="file-text" style="width:16px; height:16px;"></i></a>
+                                        <?php if (!empty($exp['receipt_file_id'])): ?>
+                                            <a href="<?php echo APP_URL; ?>/api/files?id=<?php echo (int)$exp['receipt_file_id']; ?>" target="_blank" title="Recibo de compra (privado)" style="color:var(--accent-secondary);"><i data-lucide="file-text" style="width:16px; height:16px;"></i></a>
                                         <?php endif; ?>
                                         <?php if ($exp['youtube_link']): ?>
                                             <a href="<?php echo sanitize($exp['youtube_link']); ?>" target="_blank" title="Link de Vídeo" style="color:var(--accent-danger);"><i data-lucide="video" style="width:16px; height:16px;"></i></a>
@@ -526,10 +531,10 @@ $typeTranslations = [
                                 </td>
                                 <td data-label="Ações" style="padding:12px 8px; text-align:right; white-space:nowrap;">
                                     <?php if (in_array($project['role'], ['owner', 'manager'])): ?>
-                                        <button onclick="openEditExpenseModal(<?php echo sanitize(json_encode($exp)); ?>);" style="background:none; border:0; color:var(--text-secondary); cursor:pointer; margin-right:8px;" title="Editar">
+                                        <button data-jsaction="openEditExpenseById" data-jsarg="<?php echo (int)$exp['id']; ?>" style="background:none; border:0; color:var(--text-secondary); cursor:pointer; margin-right:8px;" title="Editar">
                                             <i data-lucide="edit-3" style="width:14px; height:14px;"></i>
                                         </button>
-                                        <button onclick="App.Projects.deleteExpense(<?php echo $exp['id']; ?>);" style="background:none; border:0; color:var(--accent-danger); cursor:pointer;" title="Anular Compra">
+                                        <button data-jsaction="deleteExpenseById" data-jsarg="<?php echo (int)$exp['id']; ?>" style="background:none; border:0; color:var(--accent-danger); cursor:pointer;" title="Anular Compra">
                                             <i data-lucide="ban" style="width:14px; height:14px;"></i>
                                         </button>
                                     <?php endif; ?>
@@ -583,10 +588,10 @@ $typeTranslations = [
                                 <td data-label="Data" style="padding:12px 8px; white-space:nowrap;"><?php echo date('d/m/Y H:i', strtotime($f['created_at'])); ?></td>
                                 <td data-label="Ações" style="padding:12px 8px; text-align:right; white-space:nowrap;">
                                     <?php if (in_array($project['role'], ['owner', 'manager'])): ?>
-                                        <button onclick="openEditFundModal(<?php echo sanitize(json_encode($f)); ?>);" style="background:none; border:0; color:var(--text-secondary); cursor:pointer; margin-right:8px;" title="Editar">
+                                        <button data-jsaction="openEditFundById" data-jsarg="<?php echo (int)$f['id']; ?>" style="background:none; border:0; color:var(--text-secondary); cursor:pointer; margin-right:8px;" title="Editar">
                                             <i data-lucide="edit-3" style="width:14px; height:14px;"></i>
                                         </button>
-                                        <button onclick="deleteFund(<?php echo $f['id']; ?>);" style="background:none; border:0; color:var(--accent-danger); cursor:pointer;" title="Eliminar Aporte">
+                                        <button data-jsaction="deleteFundById" data-jsarg="<?php echo (int)$f['id']; ?>" style="background:none; border:0; color:var(--accent-danger); cursor:pointer;" title="Eliminar Aporte">
                                             <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                                         </button>
                                     <?php endif; ?>
@@ -610,11 +615,11 @@ $typeTranslations = [
                 </div>
                 <?php if (in_array($project['role'], ['owner', 'manager'])): ?>
                     <div style="display:flex; gap:10px;">
-                        <button class="btn btn-secondary" onclick="openImportPreModal();" style="font-size:13px; padding: 8px 16px; border-color:var(--border-color); background:rgba(255,255,255,0.03); display:inline-flex; align-items:center; gap:6px;">
+                        <button class="btn btn-secondary" data-jsaction="openImportPreModal" style="font-size:13px; padding: 8px 16px; border-color:var(--border-color); background:rgba(255,255,255,0.03); display:inline-flex; align-items:center; gap:6px;">
                             <i data-lucide="file-spreadsheet" style="width:16px; height:16px;"></i>
                             Importar Excel/CSV
                         </button>
-                        <button class="btn btn-primary" onclick="openAddPreItemModal();" style="font-size:13px; padding: 8px 16px; background:var(--accent-secondary); border-color:var(--accent-secondary); box-shadow:0 4px 14px rgba(99,102,241,0.2); display:inline-flex; align-items:center; gap:6px;">
+                        <button class="btn btn-primary" data-jsaction="openAddPreItemModal" style="font-size:13px; padding: 8px 16px; background:var(--accent-secondary); border-color:var(--accent-secondary); box-shadow:0 4px 14px rgba(99,102,241,0.2); display:inline-flex; align-items:center; gap:6px;">
                             <i data-lucide="plus" style="width:16px; height:16px;"></i>
                             Adicionar Item de Planeamento
                         </button>
@@ -743,16 +748,16 @@ $typeTranslations = [
                                                     <td data-label="Ações" style="padding:12px 16px; text-align:right; white-space:nowrap;">
                                                         <div style="display:inline-flex; gap:12px; align-items:center;">
                                                             <?php if (in_array($project['role'], ['owner', 'manager'])): ?>
-                                                                <button class="btn btn-secondary" onclick="preFillExpense(<?php echo sanitize(json_encode($pbItem['name'])); ?>, <?php echo (float)$pbItem['price']; ?>, <?php echo (float)$pbItem['quantity']; ?>, <?php echo sanitize(json_encode($pbItem['unit'])); ?>, <?php echo sanitize(json_encode($pbItem['phase'])); ?>);" style="padding:4px 10px; font-size:11px; display:inline-flex; align-items:center; gap:4px; background:rgba(16,185,129,0.05); border-color:rgba(16,185,129,0.1);" title="Lançar como despesa real">
+                                                                <button class="btn btn-secondary" data-jsaction="prefillPreById" data-jsarg="<?php echo (int)$pbItem['id']; ?>" style="padding:4px 10px; font-size:11px; display:inline-flex; align-items:center; gap:4px; background:rgba(16,185,129,0.05); border-color:rgba(16,185,129,0.1);" title="Lançar como despesa real">
                                                                     <i data-lucide="shopping-cart" style="width:12px; height:12px; color:var(--accent-success);"></i>
                                                                     Registar Compra
                                                                 </button>
                                                                 
-                                                                <button onclick="openEditPreItemModal(<?php echo sanitize(json_encode($pbItem)); ?>);" style="background:none; border:0; color:var(--accent-primary); cursor:pointer; padding:4px;" title="Editar Material Estimado">
+                                                                <button data-jsaction="openEditPreById" data-jsarg="<?php echo (int)$pbItem['id']; ?>" style="background:none; border:0; color:var(--accent-primary); cursor:pointer; padding:4px;" title="Editar Material Estimado">
                                                                     <i data-lucide="edit-3" style="width:14px; height:14px;"></i>
                                                                 </button>
                                                                 
-                                                                <button onclick="deletePreItem(<?php echo $pbItem['id']; ?>);" style="background:none; border:0; color:var(--accent-danger); cursor:pointer; padding:4px;" title="Eliminar Planeamento">
+                                                                <button data-jsaction="deletePreById" data-jsarg="<?php echo (int)$pbItem['id']; ?>" style="background:none; border:0; color:var(--accent-danger); cursor:pointer; padding:4px;" title="Eliminar Planeamento">
                                                                     <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                                                                 </button>
                                                             <?php endif; ?>
@@ -777,14 +782,14 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="add-funds-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
     <div class="card" style="width:100%; max-width:480px; padding:24px; position:relative; margin:16px;">
-        <button onclick="closeAddFundsModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeAddFundsModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="wallet" style="color:var(--accent-success);"></i>
             Registar Aporte Financeiro
         </h3>
         
-        <form id="add-funds-form" onsubmit="event.preventDefault(); submitAddFunds();">
+        <form id="add-funds-form" data-jsaction="submitAddFunds" data-jsprevent="1">
             <div class="form-group" style="margin-bottom:16px;">
                 <label for="fund-amount" style="display:block; font-size:12px; margin-bottom:6px;">Valor do Aporte *</label>
                 <input type="number" step="0.01" id="fund-amount" class="form-control" placeholder="Ex: 50000" required style="width:100%;">
@@ -793,7 +798,7 @@ $typeTranslations = [
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
                 <div class="form-group">
                     <label for="fund-currency" style="display:block; font-size:12px; margin-bottom:6px;">Moeda Original *</label>
-                    <select id="fund-currency" class="form-control" onchange="adjustExchangeRate(this.value);" style="width:100%; background:var(--bg-secondary); height:38px;">
+                    <select id="fund-currency" class="form-control" data-jsaction="adjustExchangeRate" data-jsarg="__value__" style="width:100%; background:var(--bg-secondary); height:38px;">
                         <option value="AOA">AOA (Kwanza)</option>
                         <option value="USD">USD (Dólar)</option>
                         <option value="EUR">EUR (Euro)</option>
@@ -812,7 +817,7 @@ $typeTranslations = [
             </div>
             
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeAddFundsModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeAddFundsModal">Cancelar</button>
                 <button type="submit" id="add-funds-btn" class="btn btn-primary" style="background:var(--accent-success); box-shadow: 0 4px 14px rgba(16,185,129,0.3);">Registar Entrada</button>
             </div>
         </form>
@@ -824,14 +829,14 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="edit-funds-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
     <div class="card" style="width:100%; max-width:480px; padding:24px; position:relative; margin:16px;">
-        <button onclick="closeEditFundsModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeEditFundsModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="edit-3" style="color:var(--accent-success);"></i>
             Editar Aporte Financeiro
         </h3>
         
-        <form id="edit-funds-form" onsubmit="event.preventDefault(); submitEditFund();">
+        <form id="edit-funds-form" data-jsaction="submitEditFund" data-jsprevent="1">
             <input type="hidden" id="edit-fund-id">
             
             <div class="form-group" style="margin-bottom:16px;">
@@ -842,7 +847,7 @@ $typeTranslations = [
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
                 <div class="form-group">
                     <label for="edit-fund-currency" style="display:block; font-size:12px; margin-bottom:6px;">Moeda Original *</label>
-                    <select id="edit-fund-currency" class="form-control" onchange="adjustEditExchangeRate(this.value);" style="width:100%; background:var(--bg-secondary); height:38px;">
+                    <select id="edit-fund-currency" class="form-control" data-jsaction="adjustEditExchangeRate" data-jsarg="__value__" style="width:100%; background:var(--bg-secondary); height:38px;">
                         <option value="AOA">AOA (Kwanza)</option>
                         <option value="USD">USD (Dólar)</option>
                         <option value="EUR">EUR (Euro)</option>
@@ -861,7 +866,7 @@ $typeTranslations = [
             </div>
             
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeEditFundsModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeEditFundsModal">Cancelar</button>
                 <button type="submit" id="edit-funds-btn" class="btn btn-primary" style="background:var(--accent-success); box-shadow: 0 4px 14px rgba(16,185,129,0.3);">Salvar Alterações</button>
             </div>
         </form>
@@ -873,7 +878,7 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="import-pre-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
     <div class="card" style="width:100%; max-width:520px; padding:24px; position:relative; margin:16px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border-color);">
-        <button onclick="closeImportPreModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeImportPreModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:8px; display:flex; align-items:center; gap:8px; color:#ffffff;">
             <i data-lucide="file-spreadsheet" style="color:var(--accent-secondary);"></i>
@@ -893,14 +898,14 @@ $typeTranslations = [
             </span>
         </div>
 
-        <form id="import-pre-form" onsubmit="event.preventDefault(); submitImportPre();" style="display:flex; flex-direction:column; gap:16px;">
+        <form id="import-pre-form" data-jsaction="submitImportPre" data-jsprevent="1" style="display:flex; flex-direction:column; gap:16px;">
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <label style="font-size:12px; font-weight:600; color:#ffffff;">Selecionar Ficheiro (.csv)</label>
                 <input type="file" id="import-csv-file" accept=".csv, .txt" required class="form-control" style="font-size:13px; padding:10px; border-color:var(--border-color); background:rgba(0,0,0,0.2); width:100%;">
             </div>
             
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
-                <button type="button" class="btn btn-secondary" onclick="closeImportPreModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeImportPreModal">Cancelar</button>
                 <button type="submit" id="import-pre-btn" class="btn btn-primary" style="background:var(--accent-secondary); border-color:var(--accent-secondary); font-weight:700; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 14px rgba(99,102,241,0.25);">
                     <i data-lucide="upload-cloud" style="width:16px; height:16px;"></i>
                     Iniciar Importação
@@ -915,14 +920,14 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="add-pre-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
     <div class="card" style="width:100%; max-width:480px; padding:24px; position:relative; margin:16px;">
-        <button onclick="closeAddPreItemModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeAddPreItemModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="clipboard-list" style="color:var(--accent-secondary);"></i>
             Item de Planeamento (Pré-Orçamento)
         </h3>
         
-        <form id="add-pre-form" onsubmit="event.preventDefault(); submitAddPreItem();">
+        <form id="add-pre-form" data-jsaction="submitAddPreItem" data-jsprevent="1">
             <div class="form-group" style="margin-bottom:16px;">
                 <label for="pre-name" style="display:block; font-size:12px; margin-bottom:6px;">Material ou Serviço Planeado *</label>
                 <input type="text" id="pre-name" class="form-control" placeholder="Ex: Cimento Portland 32.5N" required style="width:100%;">
@@ -957,7 +962,7 @@ $typeTranslations = [
             </div>
             
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeAddPreItemModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeAddPreItemModal">Cancelar</button>
                 <button type="submit" id="add-pre-btn" class="btn btn-primary" style="background:var(--accent-secondary); border-color:var(--accent-secondary); box-shadow: 0 4px 14px rgba(99,102,241,0.3);">Registar Planeamento</button>
             </div>
         </form>
@@ -969,14 +974,14 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="edit-pre-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
     <div class="card" style="width:100%; max-width:480px; padding:24px; position:relative; margin:16px;">
-        <button onclick="closeEditPreItemModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeEditPreItemModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="edit-3" style="color:var(--accent-secondary);"></i>
             Editar Item de Planeamento
         </h3>
         
-        <form id="edit-pre-form" onsubmit="event.preventDefault(); submitEditPreItem();">
+        <form id="edit-pre-form" data-jsaction="submitEditPreItem" data-jsprevent="1">
             <input type="hidden" id="edit-pre-id">
             
             <div class="form-group" style="margin-bottom:16px;">
@@ -1013,7 +1018,7 @@ $typeTranslations = [
             </div>
             
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeEditPreItemModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeEditPreItemModal">Cancelar</button>
                 <button type="submit" id="edit-pre-btn" class="btn btn-primary" style="background:var(--accent-secondary); border-color:var(--accent-secondary); box-shadow: 0 4px 14px rgba(99,102,241,0.3);">Guardar Alterações</button>
             </div>
         </form>
@@ -1025,14 +1030,14 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="add-expense-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px); overflow-y:auto; padding: 20px 0;">
     <div class="card" style="width:100%; max-width:640px; padding:24px; position:relative; margin:auto;">
-        <button onclick="closeAddExpenseModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeAddExpenseModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="plus" style="color:var(--accent-primary);"></i>
             Lançar Nova Despesa
         </h3>
         
-        <form id="add-expense-form" onsubmit="event.preventDefault(); submitAddExpense();" enctype="multipart/form-data">
+        <form id="add-expense-form" data-jsaction="submitAddExpense" data-jsprevent="1" enctype="multipart/form-data">
             <!-- Dados Básicos -->
             <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:16px;">
                 <div class="form-group">
@@ -1113,7 +1118,7 @@ $typeTranslations = [
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeAddExpenseModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeAddExpenseModal">Cancelar</button>
                 <button type="submit" id="add-expense-btn" class="btn btn-primary">Lançar Despesa</button>
             </div>
         </form>
@@ -1125,14 +1130,14 @@ $typeTranslations = [
 <!-- ========================================== -->
 <div class="modal" id="edit-expense-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter:blur(6px); overflow-y:auto; padding:20px 0;">
     <div class="card" style="width:100%; max-width:640px; padding:24px; position:relative; margin:auto;">
-        <button onclick="closeEditExpenseModal();" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
+        <button data-jsaction="closeEditExpenseModal" style="position:absolute; top:16px; right:16px; color:var(--text-secondary); background:none; border:0; cursor:pointer;"><i data-lucide="x"></i></button>
         
         <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
             <i data-lucide="edit-3" style="color:var(--accent-primary);"></i>
             Editar Lançamento
         </h3>
         
-        <form id="edit-expense-form" onsubmit="event.preventDefault(); submitEditExpense();" enctype="multipart/form-data">
+        <form id="edit-expense-form" data-jsaction="submitEditExpense" data-jsprevent="1" enctype="multipart/form-data">
             <input type="hidden" id="edit-exp-id">
             
             <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:16px;">
@@ -1210,7 +1215,7 @@ $typeTranslations = [
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn btn-secondary" onclick="closeEditExpenseModal();">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-jsaction="closeEditExpenseModal">Cancelar</button>
                 <button type="submit" id="edit-expense-btn-submit" class="btn btn-primary">Salvar Alterações</button>
             </div>
         </form>
@@ -1223,6 +1228,34 @@ window.FINANCIAL_METRICS = {
     phaseSpent: <?php echo json_encode($phaseSpent); ?>
 };
 // --- SWITCH TAB CONTROLLER ---
+
+// (CJ-12) Índice dos itens por id para as ações das linhas (sem handlers inline)
+window.FINANCIAL_ITEMS = {
+    expenses: <?php echo json_encode($expenses); ?>,
+    funds: <?php echo json_encode($funds); ?>,
+    prebudget: <?php echo json_encode($preBudgets); ?>
+};
+(function () {
+    function indexById(list) {
+        var map = {};
+        (list || []).forEach(function (item) { if (item && item.id != null) map[item.id] = item; });
+        return map;
+    }
+    window.FINANCIAL_ITEMS.expenses = indexById(window.FINANCIAL_ITEMS.expenses);
+    window.FINANCIAL_ITEMS.funds = indexById(window.FINANCIAL_ITEMS.funds);
+    window.FINANCIAL_ITEMS.prebudget = indexById(window.FINANCIAL_ITEMS.prebudget);
+})();
+
+function finItem(list, id) {
+    return window.FINANCIAL_ITEMS && window.FINANCIAL_ITEMS[list] ? window.FINANCIAL_ITEMS[list][id] : null;
+}
+function openEditExpenseById(id) { var it = finItem('expenses', id); if (it) openEditExpenseModal(it); }
+function deleteExpenseById(id) { App.Projects.deleteExpense(id); }
+function openEditFundById(id) { var it = finItem('funds', id); if (it) openEditFundModal(it); }
+function deleteFundById(id) { deleteFund(id); }
+function openEditPreById(id) { var it = finItem('prebudget', id); if (it) openEditPreItemModal(it); }
+function deletePreById(id) { deletePreItem(id); }
+function prefillPreById(id) { var it = finItem('prebudget', id); if (it) preFillExpense(it.name, it.price, it.quantity, it.unit, it.phase); }
 function switchTab(tab) {
     const expensesBtn = document.getElementById('tab-expenses-btn');
     const fundsBtn = document.getElementById('tab-funds-btn');

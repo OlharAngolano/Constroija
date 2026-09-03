@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 class Security {
     private static ?string $nonce = null;
+    private static bool $initialized = false;
 
     /**
      * Rate limiting simples baseado em ficheiros
@@ -182,13 +183,19 @@ class Security {
     }
 
     /**
-     * Inicialização global do Mini-WAF
+     * Inicialização global do Mini-WAF (executada uma única vez por pedido)
      */
     public static function init(): void {
+        if (self::$initialized) {
+            return;
+        }
+        self::$initialized = true;
+
         if (session_status() === PHP_SESSION_NONE) {
             // Configurações de cookies de sessão seguros
             ini_set('session.cookie_httponly', '1');
             ini_set('session.use_only_cookies', '1');
+            ini_set('session.use_strict_mode', '1');
             ini_set('session.cookie_samesite', 'Strict');
             
             // HTTPS obrigatório para Secure
@@ -205,6 +212,37 @@ class Security {
         
         // Aplicar Headers
         self::setHeaders($nonce);
+
+        // Gestor global de exceções/erros (auditoria CJ-14): em produção nunca
+        // expõe detalhes internos; regista com ID de correlação e devolve mensagem genérica.
+        set_exception_handler(function (Throwable $e): void {
+            $ref = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+            error_log(sprintf(
+                '[%s] Erro não tratado: %s em %s:%d',
+                $ref,
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
+            if (!headers_sent()) {
+                http_response_code(500);
+                if (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false || self::wantsJson()) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['success' => false, 'error' => 'Erro interno do servidor. Guarde o código ' . $ref . ' e contacte o suporte.', 'code' => 500]);
+                } else {
+                    echo "<div style='font-family:sans-serif; text-align:center; padding:50px; background:#0a0f1e; color:#f1f5f9; min-height:100vh;'><h1 style='color:#ef4444;'>Erro interno</h1><p>Ocorreu um erro inesperado. Guarde o código <strong>{$ref}</strong> e contacte o suporte.</p><a href='/' style='color:#f97316;'>Voltar ao Início</a></div>";
+                }
+            }
+            exit;
+        });
+        set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
+            if (!(error_reporting() & $severity)) {
+                return false; // respeitar @ / error_reporting
+            }
+            // Nunca mostrar erros ao cliente; registar no log protegido.
+            error_log(sprintf('PHP error [%d]: %s em %s:%d', $severity, $message, $file, $line));
+            return true;
+        });
         
         // Validar ameaças nos inputs recebidos
         if (self::detectThreats($_GET) || self::detectThreats($_POST) || self::detectThreats($_COOKIE)) {
@@ -225,5 +263,14 @@ class Security {
             }
             exit;
         }
+    }
+
+    /**
+     * Detecta se o cliente espera JSON (utilizado pelos gestores de erro globais)
+     */
+    private static function wantsJson(): bool {
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        return stripos($accept, 'application/json') !== false
+            || ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
     }
 }

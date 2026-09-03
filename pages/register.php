@@ -33,7 +33,7 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         </div>
 
-        <form id="register-form" onsubmit="event.preventDefault(); handleRegister();" novalidate>
+        <form id="register-form" data-jsaction="handleRegister" data-jsprevent="1" novalidate>
             <div class="form-group">
                 <label for="name" class="form-label">Nome Completo</label>
                 <input type="text" id="name" class="form-control" placeholder="ex: Eng. António Manuel" required>
@@ -54,7 +54,7 @@ require_once __DIR__ . '/../templates/header.php';
                 <label for="password" class="form-label">Password</label>
                 <div style="position:relative; display:flex; align-items:center;">
                     <input type="password" id="password" class="form-control" placeholder="Mínimo 8 caracteres" required autocomplete="new-password" style="padding-right: 44px; width: 100%;">
-                    <button type="button" onclick="togglePasswordVisibility('password', this)" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
+                    <button type="button" data-jsaction="togglePasswordVisibility" data-jsarg="password" data-jselement="1" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
                         <i data-lucide="eye" style="width:18px; height:18px;"></i>
                     </button>
                 </div>
@@ -64,7 +64,7 @@ require_once __DIR__ . '/../templates/header.php';
                 <label for="password_confirm" class="form-label">Confirmar Password</label>
                 <div style="position:relative; display:flex; align-items:center;">
                     <input type="password" id="password_confirm" class="form-control" placeholder="Repita a password anterior" required autocomplete="new-password" style="padding-right: 44px; width: 100%;">
-                    <button type="button" onclick="togglePasswordVisibility('password_confirm', this)" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
+                    <button type="button" data-jsaction="togglePasswordVisibility" data-jsarg="password_confirm" data-jselement="1" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
                         <i data-lucide="eye" style="width:18px; height:18px;"></i>
                     </button>
                 </div>

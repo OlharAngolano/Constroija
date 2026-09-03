@@ -8,6 +8,7 @@ if (is_logged_in()) {
 }
 
 $token = trim((string)($_GET['token'] ?? ''));
+unset($_GET['token']); // não propagar o token por URL/inputs desnecessários
 
 $isValid = false;
 $userEmail = '';
@@ -26,14 +27,9 @@ if (!empty($token)) {
         if ($expires !== null && $expires >= $now) {
             $isValid = true;
             $userEmail = $user['email'];
-        } else {
-            error_log("Password reset: Token expired. Token: $token, Expires: " . ($expires ?? 'NULL') . ", Now: $now");
         }
-    } else {
-        error_log("Password reset: Token not found in database. Token: $token");
+        // (CJ-05) sem token em logs
     }
-} else {
-    error_log("Password reset: Token parameter is empty.");
 }
 
 $title = 'Redefinir Palavra-passe — Constrói Já';
@@ -73,14 +69,14 @@ require_once __DIR__ . '/../templates/header.php';
                 </p>
             </div>
 
-            <form id="reset-form" onsubmit="event.preventDefault(); handleReset();">
+            <form id="reset-form" data-jsaction="handleReset" data-jsprevent="1">
                 <input type="hidden" id="token" value="<?php echo sanitize($token); ?>">
 
                 <div class="form-group">
                     <label for="password" class="form-label">Nova Palavra-passe</label>
                     <div style="position:relative; display:flex; align-items:center;">
                         <input type="password" id="password" class="form-control" placeholder="Mínimo 8 caracteres" required autocomplete="new-password" style="padding-right: 44px; width: 100%;">
-                        <button type="button" onclick="togglePasswordVisibility('password', this)" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
+                        <button type="button" data-jsaction="togglePasswordVisibility" data-jsarg="password" data-jselement="1" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
                             <i data-lucide="eye" style="width:18px; height:18px;"></i>
                         </button>
                     </div>
@@ -90,7 +86,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <label for="password_confirm" class="form-label">Confirmar Palavra-passe</label>
                     <div style="position:relative; display:flex; align-items:center;">
                         <input type="password" id="password_confirm" class="form-control" placeholder="Repita a palavra-passe" required autocomplete="new-password" style="padding-right: 44px; width: 100%;">
-                        <button type="button" onclick="togglePasswordVisibility('password_confirm', this)" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
+                        <button type="button" data-jsaction="togglePasswordVisibility" data-jsarg="password_confirm" data-jselement="1" style="position:absolute; right:6px; background:none; border:none; padding:8px; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; outline:none; transition: color var(--transition-fast);" aria-label="Mostrar/Ocultar password">
                             <i data-lucide="eye" style="width:18px; height:18px;"></i>
                         </button>
                     </div>

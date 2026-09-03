@@ -68,26 +68,7 @@ if (!$imagePath) {
 $db = db();
 
 try {
-    // Garantir que a tabela marketplace_products existe
-    $db->execute("
-        CREATE TABLE IF NOT EXISTS marketplace_products (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            category VARCHAR(50) NOT NULL DEFAULT 'outros',
-            partner VARCHAR(255) NOT NULL,
-            whatsapp VARCHAR(50) NOT NULL,
-            price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-            unit VARCHAR(50) NOT NULL DEFAULT 'un',
-            discount_pct INT NOT NULL DEFAULT 0,
-            coupon VARCHAR(50) DEFAULT NULL,
-            image VARCHAR(500) DEFAULT NULL,
-            `desc` TEXT DEFAULT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
+    // (CJ-09) A tabela marketplace_products é criada pelas migrações (bin/migrate.php).
     $inserted = $db->execute(
         "INSERT INTO marketplace_products (user_id, name, category, partner, whatsapp, price, unit, image, `desc`) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -102,5 +83,5 @@ try {
     json_ok([], 'Anúncio publicado com sucesso!');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao registar o anúncio: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao registar o anúncio: ', $e);
 }

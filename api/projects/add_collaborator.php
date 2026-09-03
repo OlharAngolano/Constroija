@@ -82,5 +82,5 @@ try {
     json_ok([], 'Colaborador adicionado com sucesso.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao adicionar colaborador: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao adicionar colaborador: ', $e);
 }

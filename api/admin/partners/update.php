@@ -49,5 +49,5 @@ try {
     json_ok([], 'Parceiro B2B atualizado com sucesso!');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao atualizar parceiro B2B: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao atualizar parceiro B2B: ', $e);
 }

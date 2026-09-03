@@ -28,7 +28,7 @@ require_once __DIR__ . '/../../templates/header.php';
     </div>
 
     <div class="card">
-        <form id="create-project-form" onsubmit="event.preventDefault(); submitCreateProject();">
+        <form id="create-project-form" data-jsaction="submitCreateProject" data-jsprevent="1">
             
             <!-- upload da imagem de capa -->
             <div class="form-group" style="margin-bottom: 24px;">

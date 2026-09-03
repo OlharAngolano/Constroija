@@ -38,7 +38,7 @@ $pSkillsStr  = implode(', ', $pSkillsList);
     </div>
 
     <div class="card">
-        <form id="portfolio-settings-form" onsubmit="event.preventDefault(); savePortfolioSettings();">
+        <form id="portfolio-settings-form" data-jsaction="savePortfolioSettings" data-jsprevent="1">
             
             <!-- Secção: Dados de Apresentação -->
             <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">

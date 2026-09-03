@@ -48,5 +48,5 @@ try {
     json_ok(['questions' => $questions], 'Perguntas carregadas.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao consultar a base de dados Q&A: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao consultar a base de dados Q&A: ', $e);
 }

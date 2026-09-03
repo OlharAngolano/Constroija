@@ -224,12 +224,12 @@ require_once __DIR__ . '/../../templates/header.php';
         </a>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button onclick="window.print()" class="btn btn-primary" style="background:#10b981; border-color:#10b981; font-weight:800; font-size:13px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 14px rgba(16, 185, 129, 0.3);">
+            <button data-jsaction="__print__" class="btn btn-primary" style="background:#10b981; border-color:#10b981; font-weight:800; font-size:13px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 14px rgba(16, 185, 129, 0.3);">
                 <i data-lucide="printer" style="width:16px; height:16px;"></i>
                 Imprimir / Guardar em PDF
             </button>
 
-            <button onclick="shareWhatsAppReport()" class="btn" style="background:#22c55e; border-color:#22c55e; color:white; font-weight:800; font-size:13px; display:inline-flex; align-items:center; gap:8px;">
+            <button data-jsaction="shareWhatsAppReport" class="btn" style="background:#22c55e; border-color:#22c55e; color:white; font-weight:800; font-size:13px; display:inline-flex; align-items:center; gap:8px;">
                 <i data-lucide="message-square" style="width:16px; height:16px;"></i>
                 Enviar via WhatsApp
             </button>

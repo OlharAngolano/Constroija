@@ -58,8 +58,10 @@ if (!function_exists('env')) {
 }
 
 // Configurar Constantes Globais de Ambiente
-define('APP_ENV', env('APP_ENV', 'development'));
-define('APP_DEBUG', env('APP_DEBUG', true));
+// Fail-safe (auditoria CJ-14): por omissão assume PRODUÇÃO com debug DESLIGADO.
+// O modo development só é ativado com APP_ENV=development explícito.
+define('APP_ENV', env('APP_ENV', 'production'));
+define('APP_DEBUG', env('APP_DEBUG', false));
 
 $appUrl = env('APP_URL', 'http://localhost:8000');
 if ($appUrl !== '' && strpos($appUrl, 'http://') !== 0 && strpos($appUrl, 'https://') !== 0) {
@@ -88,11 +90,20 @@ define('SMTP_PASS', env('SMTP_PASS', ''));
 define('SMTP_SECURE', env('SMTP_SECURE', 'tls')); // 'ssl', 'tls' ou vazio
 define('SMTP_FROM_EMAIL', env('SMTP_FROM_EMAIL', ''));
 define('SMTP_FROM_NAME', env('SMTP_FROM_NAME', 'Constrói Já'));
+// Validação TLS do certificado SMTP (auditoria CJ-06): por omissão ATIVADA.
+define('SMTP_VERIFY_PEER', (bool)env('SMTP_VERIFY_PEER', true));
+
+// Pagamentos: segredo do webhook (vazio = endpoint de webhook inativo)
+define('PAYMENTS_WEBHOOK_SECRET', env('PAYMENTS_WEBHOOK_SECRET', ''));
 
 
 // Diretórios principais
 define('ROOT_DIR', dirname(__DIR__));
 define('UPLOAD_DIR', ROOT_DIR . '/uploads');
+// Armazenamento privado (recibos/documentos financeiros) — FORA do web root
+// ou, se o web root for a raiz, protegido por .htaccess e nunca servido
+// diretamente (apenas via /api/files com autorização — CJ-07)
+define('PRIVATE_UPLOAD_DIR', ROOT_DIR . '/storage/private');
 define('LOG_DIR', ROOT_DIR . '/logs');
 
 // Gestão de Erros baseada no ambiente
@@ -105,7 +116,15 @@ if (APP_ENV === 'development') {
     ini_set('log_errors', '1');
     
     if (!is_dir(LOG_DIR)) {
-        mkdir(LOG_DIR, 0750, true);
+        @mkdir(LOG_DIR, 0750, true);
     }
     ini_set('error_log', LOG_DIR . '/php_errors.log');
 }
+
+// =========================================================================
+// Bootstrap de segurança único para QUALQUER entrada (front controller,
+// páginas, APIs e scripts): sessão segura, headers, WAF e gestão de erros.
+// (Auditoria CJ-10: todos os endpoints partilham a mesma inicialização.)
+// =========================================================================
+require_once dirname(__DIR__) . '/includes/Security.php';
+Security::init();

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once ROOT_DIR . '/includes/helpers.php';
+require_once ROOT_DIR . '/includes/auth.php';
 require_once ROOT_DIR . '/includes/Mail.php';
 
 // 1. Validar se o método é POST
@@ -45,7 +47,10 @@ if ($user !== null) {
         [$token, $expires, $userId]
     );
 
-    error_log("Password reset requested for email '$email'. Token: '$token', Expires: '$expires'");
+    // (CJ-05) NUNCA registar o token em logs: apenas um identificador de
+    // correlação não reversível para apoio ao cliente.
+    $logRef = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+    error_log("Password reset requested (ref {$logRef}) for user id {$userId} — expira {$expires}");
 
     // 8. Construir o link e o corpo do email HTML premium
     $resetLink = APP_URL . '/reset-password?token=' . $token;

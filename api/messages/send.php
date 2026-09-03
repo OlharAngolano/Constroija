@@ -62,9 +62,17 @@ try {
             $db->commit();
         }
     } else {
-        // Validar que o utilizador atual pertence a este chat e encontrar o outro participante
+        // (CJ-03) Autorização rigorosa: o remetente TEM de ser participante da
+        // conversa; o destinatário é o OUTRO participante, confirmado na mesma
+        // consulta (dois aliases + condição explícita cp_me.user_id = ?).
         $participant = $db->fetch(
-            "SELECT user_id FROM conversation_participants WHERE conversation_id = ? AND user_id != ?",
+            "SELECT cp_other.user_id
+             FROM conversation_participants cp_me
+             JOIN conversation_participants cp_other
+               ON cp_other.conversation_id = cp_me.conversation_id
+              AND cp_other.user_id != cp_me.user_id
+             WHERE cp_me.conversation_id = ? AND cp_me.user_id = ?
+             LIMIT 1",
             [$conversationId, $user['id']]
         );
 
@@ -107,5 +115,5 @@ try {
     if ($db->getConnection()->inTransaction()) {
         $db->rollBack();
     }
-    json_error('Erro técnico ao enviar mensagem: ' . $e->getMessage(), 500);
+    json_internal_error('Erro técnico ao enviar mensagem: ', $e);
 }

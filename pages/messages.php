@@ -61,13 +61,13 @@ if ($recipientId > 0 && $recipientId !== $user['id']) {
         
         <div class="msg-sidebar__search">
             <i data-lucide="search" style="width:16px; height:16px; color:var(--text-muted); position:absolute; left:14px; top:50%; transform:translateY(-50%);"></i>
-            <input type="text" placeholder="Pesquisar no Messenger" class="msg-sidebar__search-input" id="msg-search-input" oninput="filterConversations(this.value)">
+            <input type="text" placeholder="Pesquisar no Messenger" class="msg-sidebar__search-input" id="msg-search-input" data-jsaction="filterConversations" data-jsarg="__value__">
         </div>
         
         <div class="msg-sidebar__list" id="chat-list-container">
             <?php if ($recipientUser): ?>
                 <!-- Novo chat pendente -->
-                <div class="msg-convo-item msg-convo-item--active" id="convo-item-new" onclick="selectNewRecipient(<?php echo $recipientUser['id']; ?>)" data-name="<?php echo sanitize($recipientUser['name']); ?>">
+                <div class="msg-convo-item msg-convo-item--active" id="convo-item-new" data-jsaction="selectNewRecipient" data-jsarg="<?php echo (int)$recipientUser['id']; ?>" data-name="<?php echo sanitize($recipientUser['name']); ?>">
                     <img src="<?php echo get_avatar_url($recipientUser['avatar_url'], $recipientUser['name']); ?>" class="msg-convo-item__avatar">
                     <div class="msg-convo-item__info">
                         <span class="msg-convo-item__name">
@@ -92,7 +92,7 @@ if ($recipientId > 0 && $recipientId !== $user['id']) {
                     <?php $isActive = ($preselectId === (int)$convo['id'] && !$recipientUser); ?>
                     <div class="msg-convo-item <?php echo $isActive ? 'msg-convo-item--active' : ''; ?>" 
                          id="convo-item-<?php echo $convo['id']; ?>" 
-                         onclick="App.Messages.loadConversation(<?php echo $convo['id']; ?>); showChatPanel();"
+                         data-jsaction="openConversationById" data-jsarg="<?php echo (int)$convo['id']; ?>"
                          data-name="<?php echo sanitize($convo['name']); ?>">
                         <img src="<?php echo get_avatar_url($convo['avatar_url'], $convo['name']); ?>" class="msg-convo-item__avatar">
                         <div class="msg-convo-item__info">
@@ -117,7 +117,7 @@ if ($recipientId > 0 && $recipientId !== $user['id']) {
     <div class="msg-chat" id="msg-chat">
         <!-- Header do chat (aparece quando conversa é selecionada) -->
         <div class="msg-chat__header" id="msg-chat-header" style="display:none;">
-            <button class="msg-chat__back-btn" onclick="showSidebarPanel()" title="Voltar">
+            <button class="msg-chat__back-btn" data-jsaction="showSidebarPanel" title="Voltar">
                 <i data-lucide="arrow-left" style="width:20px; height:20px;"></i>
             </button>
             <div class="msg-chat__header-info" id="msg-chat-header-info">
@@ -136,7 +136,7 @@ if ($recipientId > 0 && $recipientId !== $user['id']) {
         
         <!-- Input de mensagem -->
         <div class="msg-chat__input-area">
-            <form onsubmit="event.preventDefault(); submitChatMessage();" class="msg-chat__form">
+            <form data-jsaction="submitChatMessage" data-jsprevent="1" class="msg-chat__form">
                 <input type="hidden" id="chat-recipient-id" value="<?php echo $recipientUser ? $recipientUser['id'] : ''; ?>">
                 <input type="text" id="chat-message-input" class="msg-chat__input" placeholder="Aa" disabled autocomplete="off">
                 <button type="submit" id="chat-send-btn" class="msg-chat__send-btn" disabled>
@@ -172,6 +172,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- CONTROLO DE PAINÉIS MOBILE ---
+// (CJ-12) Abre uma conversa existente e mostra o painel de chat (sem inline)
+function openConversationById(conversationId) {
+    App.Messages.loadConversation(conversationId);
+    showChatPanel();
+}
+
 function showChatPanel() {
     document.getElementById('msg-app').classList.add('msg-app--chat-active');
     document.getElementById('msg-chat-header').style.display = 'flex';

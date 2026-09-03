@@ -78,7 +78,6 @@ if ($budget <= 0.00) {
         // Fallback silenciando
     }
 }
-$spentPercent = $budget > 0 ? min(100, ($totalSpent / $budget) * 100) : 0;
 
 // Tratar imagem de capa
 $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url'] : 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=1200&auto=format&fit=crop';
@@ -214,13 +213,13 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                 Dashboard Financeiro
             </a>
             <?php if (in_array($project['role'], ['owner', 'manager']) || (int)($user['is_admin'] ?? 0) === 1): ?>
-                <button onclick="openEditProjectModal();" class="btn btn-secondary" style="font-size:13px; padding: 8px 16px;">
+                <button  data-jsaction="openEditProjectModal" class="btn btn-secondary" style="font-size:13px; padding: 8px 16px;">
                     <i data-lucide="edit" style="width:16px; height:16px; color:var(--accent-secondary);"></i>
                     Editar Obra
                 </button>
             <?php endif; ?>
             <?php if ($project['role'] === 'owner' || (int)($user['is_admin'] ?? 0) === 1): ?>
-                <button onclick="confirmDeleteProject();" class="btn btn-danger" style="font-size:13px; padding: 8px 16px;">
+                <button  data-jsaction="confirmDeleteProject" class="btn btn-danger" style="font-size:13px; padding: 8px 16px;">
                     <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
                     Apagar Obra
                 </button>
@@ -246,7 +245,7 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                     <?php if (in_array($project['role'], ['owner', 'manager'])): ?>
                         <div class="form-group" style="background:rgba(10,15,30,0.8); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
                             <label for="project-status-select" style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:4px;">Estado Físico da Obra</label>
-                            <select id="project-status-select" class="form-control" onchange="updateProjectStatus(this.value);" style="background:transparent; padding:0; border:0; height:auto; width:auto; font-weight:700; color:var(--accent-primary); cursor:pointer;">
+                            <select id="project-status-select" class="form-control"  data-jsaction="updateProjectStatus" data-jsarg="__value__" style="background:transparent; padding:0; border:0; height:auto; width:auto; font-weight:700; color:var(--accent-primary); cursor:pointer;">
                                 <option value="planning" <?php echo $project['status'] === 'planning' ? 'selected' : ''; ?>>Planeamento</option>
                                 <option value="active" <?php echo $project['status'] === 'active' ? 'selected' : ''; ?>>Ativo (Em Curso)</option>
                                 <option value="paused" <?php echo $project['status'] === 'paused' ? 'selected' : ''; ?>>Pausado</option>
@@ -367,7 +366,7 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                 <div style="display:flex; flex-direction:column; gap:16px;">
                     <?php foreach ($collaborators as $collab): ?>
                         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                            <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="window.location.href='/profile/<?php echo sanitize($collab['username']); ?>'">
+                            <div style="display:flex; align-items:center; gap:10px; cursor:pointer;"  data-jsaction="__go__" data-jsarg="'/profile/<?php echo sanitize($collab['username']); ?>'">
                                 <img src="<?php echo get_avatar_url($collab['avatar_url'], $collab['name']); ?>" class="avatar avatar-sm" style="width:32px; height:32px;">
                                 <div>
                                     <span style="font-weight:600; font-size:13px; display:flex; align-items:center; gap:3px;">
@@ -384,7 +383,7 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                                     <?php echo $collab['role'] === 'owner' ? 'Dono' : ($collab['role'] === 'manager' ? 'Gestor' : 'Leitor'); ?>
                                 </span>
                                 <?php if ($project['role'] === 'owner' && $collab['role'] !== 'owner'): ?>
-                                    <button onclick="removeCollaborator(<?php echo $collab['id']; ?>, '<?php echo sanitize(addslashes($collab['name'])); ?>');" style="background:none; border:0; color:var(--accent-danger); cursor:pointer; padding:2px; display:inline-flex; align-items:center; justify-content:center;" title="Remover da Equipa">
+                                    <button  data-jsaction="removeCollaborator" data-jsarg="<?php echo (int)$collab['id']; ?>" data-jsarg2="<?php echo sanitize($collab['name']); ?>" style="background:none; border:0; color:var(--accent-danger); cursor:pointer; padding:2px; display:inline-flex; align-items:center; justify-content:center;" title="Remover da Equipa">
                                         <i data-lucide="user-minus" style="width:14px; height:14px;"></i>
                                     </button>
                                 <?php endif; ?>
@@ -397,7 +396,7 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                 <?php if ($project['role'] === 'owner'): ?>
                     <div style="border-top: 1px solid var(--border-color); margin-top:20px; padding-top:20px;">
                         <h4 style="font-size:13px; margin-bottom:10px; color:var(--text-primary);">Convidar Profissional</h4>
-                        <form id="invite-collaborator-form" onsubmit="event.preventDefault(); inviteCollaborator();" style="display:flex; flex-direction:column; gap:10px;">
+                        <form id="invite-collaborator-form"  data-jsaction="inviteCollaborator" data-jsprevent="1" style="display:flex; flex-direction:column; gap:10px;">
                             <input type="text" id="collab-username" class="form-control" placeholder="Username (ex: eng.silva)" required style="font-size:12px; padding:8px 12px;">
                             
                             <select id="collab-role" class="form-control" style="font-size:12px; padding:6px 12px; height:34px; background:var(--bg-secondary);">
@@ -423,12 +422,12 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                     </h4>
                     <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px;">Gere um link temporário seguro para partilhar o progresso financeiro e físico da obra com investidores ou proprietários externos sem conta.</p>
                     
-                    <button class="btn btn-secondary" onclick="generatePublicLink();" style="width:100%; font-size:12px; padding: 10px; justify-content:center;">
+                    <button class="btn btn-secondary"  data-jsaction="generatePublicLink" style="width:100%; font-size:12px; padding: 10px; justify-content:center;">
                         <i data-lucide="link" style="width:14px; height:14px;"></i>
                         Gerar Link Seguro
                     </button>
                     <div id="public-link-container" style="margin-top:12px; display:none;">
-                        <input type="text" id="public-link-input" class="form-control" style="font-size:11px; padding: 6px; text-align:center; background: rgba(0,0,0,0.2);" readonly onclick="this.select();">
+                        <input type="text" id="public-link-input" class="form-control" style="font-size:11px; padding: 6px; text-align:center; background: rgba(0,0,0,0.2);" readonly data-jsaction="__select__">
                         <small style="color:var(--accent-success); display:block; text-align:center; margin-top:4px;">Link copiado com sucesso!</small>
                     </div>
                 </div>
@@ -448,10 +447,10 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
                 <i data-lucide="edit" style="color:var(--accent-primary);"></i>
                 Editar Definições da Obra
             </h3>
-            <i class="modal-close" data-lucide="x" onclick="App.hideModal('edit-project-modal');"></i>
+            <i class="modal-close" data-lucide="x"  data-jsaction="App.hideModal" data-jsarg="edit-project-modal"></i>
         </div>
         
-        <form id="edit-project-form" onsubmit="event.preventDefault(); submitEditProject();">
+        <form id="edit-project-form"  data-jsaction="submitEditProject" data-jsprevent="1">
             <!-- upload da imagem de capa -->
             <div class="form-group" style="margin-bottom: 20px;">
                 <label style="display:block; font-size:13px; font-weight:600; margin-bottom:8px; color:var(--text-primary);">Nova Imagem de Capa (Opcional)</label>
@@ -524,7 +523,7 @@ $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url
 
             <!-- Botões de Submissão -->
             <div class="modal-footer-buttons" style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px; border-top:1px solid var(--border-color); padding-top:16px;">
-                <button type="button" class="btn btn-secondary" onclick="App.hideModal('edit-project-modal');">Cancelar</button>
+                <button type="button" class="btn btn-secondary"  data-jsaction="App.hideModal" data-jsarg="edit-project-modal">Cancelar</button>
                 <button type="submit" id="edit-project-submit" class="btn btn-primary" style="padding: 10px 24px;">
                     Salvar Alterações
                 </button>
@@ -680,6 +679,7 @@ function confirmDeleteProject() {
         try {
             await App.delete('/api/projects/delete', {
                 project_id: <?php echo $projectId; ?>,
+                confirm: 1,
                 _token: App.csrfToken
             });
             App.showToast('Obra eliminada com sucesso.', 'success');

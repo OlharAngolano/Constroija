@@ -755,7 +755,7 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
         
         <div class="faq-item">
-            <div class="faq-question" onclick="toggleFaq(this)">
+            <div class="faq-question" data-jsaction="toggleFaq" data-jselement="1">
                 <span>Como funciona o período de testes de 3 dias?</span>
                 <i data-lucide="chevron-down" style="width:16px; height:16px;"></i>
             </div>
@@ -765,7 +765,7 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
 
         <div class="faq-item">
-            <div class="faq-question" onclick="toggleFaq(this)">
+            <div class="faq-question" data-jsaction="toggleFaq" data-jselement="1">
                 <span>Quais são os métodos de pagamento suportados em Angola?</span>
                 <i data-lucide="chevron-down" style="width:16px; height:16px;"></i>
             </div>
@@ -775,7 +775,7 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
 
         <div class="faq-item">
-            <div class="faq-question" onclick="toggleFaq(this)">
+            <div class="faq-question" data-jsaction="toggleFaq" data-jselement="1">
                 <span>Posso cancelar a assinatura quando quiser?</span>
                 <i data-lucide="chevron-down" style="width:16px; height:16px;"></i>
             </div>
