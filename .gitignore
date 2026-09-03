@@ -1,0 +1,43 @@
+# Constrói Já — Ficheiros que NUNCA devem ser versionados
+# ==========================================================
+
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+
+# Uploads de utilizadores (dados pessoais/financeiros — ver auditoria CJ-02)
+# NOTA: os ficheiros binários NUNCA entram no Git. Os ficheiros .htaccess
+# de segurança dentro de uploads/ continuam versionados de propósito.
+uploads/*
+!uploads/.htaccess
+!uploads/expenses/
+uploads/expenses/*
+!uploads/expenses/.htaccess
+
+# Armazenamento privado (recibos e documentos financeiros — fora do web root)
+storage/
+storage/*
+!storage/.htaccess
+
+# Logs e limites de taxa gerados em runtime
+logs/
+logs/*
+!logs/.htaccess
+*.log
+
+# Cache, temporários e ambiente de desenvolvimento
+.cache/
+tmp/
+*.tmp
+
+# Ferramentas/IDE
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Base de dados — nunca versionar dumps com dados
+*.sql.bak
+db_backup/
+*.sql.gz
