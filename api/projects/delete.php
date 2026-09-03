@@ -26,6 +26,13 @@ if ($projectId <= 0) {
     json_error('ID de projeto inválido.');
 }
 
+// (CJ-13) Confirmação reforçada no servidor: o cliente tem de declarar
+// explicitamente a intenção de eliminação definitiva (o modal da interface
+// pede a confirmação antes de enviar este parâmetro).
+if ((int)input('confirm', 0) !== 1) {
+    json_error('Confirmação de eliminação necessária. Envie confirm=1 para eliminar definitivamente a obra.', 400);
+}
+
 $db = db();
 
 try {
@@ -42,18 +49,39 @@ try {
         json_error('Apenas o proprietário principal da obra ou um administrador pode eliminar este projeto.', 403);
     }
 
-    // Obter capa do projeto para limpar
+    // 2. Eliminação definitiva dentro de transação: se algo falhar, nada é apagado.
+    //    A capa física só é removida DEPOIS do commit (CJ-13).
     $project = $db->fetch("SELECT cover_image_url FROM projects WHERE id = ?", [$projectId]);
-    if ($project && $project['cover_image_url'] && file_exists(ROOT_DIR . '/' . $project['cover_image_url'])) {
-        unlink(ROOT_DIR . '/' . $project['cover_image_url']);
+    if (!$project) {
+        json_error('Projeto de obra não encontrado.', 404);
     }
 
-    // 2. Eliminar projeto (o cascade limpa automaticamente project_managers, expenses, project_funds, etc)
-    $db->execute("DELETE FROM projects WHERE id = ?", [$projectId]);
+    $db->beginTransaction();
+    $deleted = $db->execute("DELETE FROM projects WHERE id = ?", [$projectId]);
+    if (!$deleted) {
+        $db->rollBack();
+        json_error('Erro técnico ao eliminar projeto de obra.', 500);
+    }
+    $db->commit();
+
+    // 3. Após commit: limpeza física da capa + auditoria (CJ-13)
+    $coverPath = $project['cover_image_url'] ?? '';
+    if ($coverPath !== '' && strpos($coverPath, '..') === false && file_exists(ROOT_DIR . '/' . $coverPath)) {
+        @unlink(ROOT_DIR . '/' . $coverPath);
+    }
+    error_log(sprintf(
+        'CJ-13: projeto #%d eliminado definitivamente pelo utilizador #%d (admin=%d)',
+        $projectId,
+        (int)$user['id'],
+        (int)$isAdmin
+    ));
 
     set_flash_message('success', 'Projeto de obra eliminado com sucesso.');
     json_ok([], 'Projeto eliminado.');
 
 } catch (PDOException $e) {
-    json_error('Erro técnico ao eliminar projeto de obra.', 500);
+    if (isset($db) && $db->inTransaction()) {
+        $db->rollBack();
+    }
+    json_internal_error('Erro técnico ao eliminar projeto de obra: ', $e);
 }

@@ -50,6 +50,13 @@ try {
         json_error('Formato de ficheiro não suportado. Por favor, envie uma folha de cálculo em formato CSV (.csv).');
     }
 
+    // (CJ-18) Limite claro de tamanho/linhas para a importação CSV
+    $maxImportBytes = 5 * 1024 * 1024; // 5 MB
+    $maxImportRows = 2000;             // 2 000 itens por importação
+    if ($fileSize > $maxImportBytes) {
+        json_error('Ficheiro demasiado grande. O limite para importação CSV é de 5 MB.');
+    }
+
     // 3. Processar e analisar o CSV
     $handle = fopen($fileTmpPath, 'r');
     if ($handle === false) {
@@ -149,6 +156,12 @@ try {
         $phase = trim($row[$colPhase]);
         if ($phase === '') $phase = 'Fundação'; // Fase padrão de fallback
 
+        if ($insertedCount >= $maxImportRows) {
+            fclose($handle);
+            $db->rollBack();
+            json_error("Limite de {$maxImportRows} itens por importação atingido. Reduza o ficheiro e tente novamente.");
+        }
+
         // Inserir item na BD
         $db->execute(
             "INSERT INTO pre_budgets (project_id, user_id, name, price, quantity, unit, phase) 
@@ -166,7 +179,7 @@ try {
     json_ok(['count' => $insertedCount], "Importados {$insertedCount} itens com sucesso!");
 
 } catch (Exception $e) {
-    if (isset($db) && $db->beginTransaction()) {
+    if (isset($db) && $db->inTransaction()) {
         $db->rollBack();
     }
     json_internal_error('Erro técnico ao importar o ficheiro CSV no servidor: ', $e);

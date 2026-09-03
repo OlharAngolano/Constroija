@@ -86,7 +86,6 @@ try {
                 $activeCount++;
             }
         }
-        $remainingBudget = max(0, $totalBudget - $totalSpent);
         ?>
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
             <div class="card" style="padding: 16px; display:flex; align-items:center; gap:16px;">
@@ -144,7 +143,9 @@ try {
                     }
                 }
                 $percent = $budget > 0 ? ($spent / $budget) * 100 : 0;
-                $percentFormatted = number_format(min(100, $percent), 0);
+                // (§5) Número real (pode exceder 100%); só a barra visual é limitada
+                $percentText = number_format($percent, 0);
+                $percentBar = min(100, $percent);
                 
                 // Tratar imagem de capa
                 $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url'] : 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=600&auto=format&fit=crop';
@@ -191,13 +192,13 @@ try {
                         <!-- Barra de consumo de orçamento -->
                         <div>
                             <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
-                                <span style="color:var(--text-secondary);">Consumo: <strong><?php echo $percentFormatted; ?>%</strong></span>
+                                <span style="color:var(--text-secondary);">Consumo: <strong><?php echo $percentText; ?>%</strong></span>
                                 <span style="font-weight:600; color:<?php echo $percent > 100 ? 'var(--accent-danger)' : 'var(--text-primary)'; ?>;">
                                     <?php echo format_currency($spent); ?>
                                 </span>
                             </div>
                             <div style="width:100%; height:6px; background:var(--bg-elevated); border-radius:3px; overflow:hidden;">
-                                <div style="width: <?php echo $percentFormatted; ?>%; height:100%; background: <?php echo $percent > 100 ? 'var(--accent-danger)' : 'var(--accent-primary)'; ?>; border-radius:3px;"></div>
+                                <div style="width: <?php echo $percentBar; ?>%; height:100%; background: <?php echo $percent > 100 ? 'var(--accent-danger)' : 'var(--accent-primary)'; ?>; border-radius:3px;"></div>
                             </div>
                             <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
                                 <span>Gasto</span>

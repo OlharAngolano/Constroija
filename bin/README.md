@@ -96,8 +96,9 @@ não autenticado.
 
 ## Notas
 
-- Nunca correr `schema.sql` contra uma base com dados: é o esquema de
-  instalação limpa (revisão de segurança CJ-08 em curso de o tornar
-  idempotente, sem `DROP TABLE` e sem sementes de contas).
+- `schema.sql` é um instalador de estrutura **idempotente** (desde a revisão
+  CJ-08/§8): usa `CREATE TABLE IF NOT EXISTS`, sem `DROP TABLE`, sem contas
+  nem palavras-passe. Serve apenas para bases novas; bases existentes evoluem
+  exclusivamente por migrações.
 - As credenciais de produção vivem **apenas** em `.env` (fora do Git desde a
   correção CJ-02). Rode `cp .env.example .env` para criar o seu ficheiro local.

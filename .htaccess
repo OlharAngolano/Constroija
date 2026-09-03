@@ -96,8 +96,9 @@ Options -Indexes
 # 2. Desativar a adição automática de barras finais pelo Apache (mod_dir)
 DirectorySlash Off
 
-# 3. Definir limite de upload no Apache para 10MB
-LimitRequestBody 10485760
+# 3. Limite de upload no Apache: 60 MB (vídeos até 50 MB + overhead multipart;
+#    imagens/documentos até 10 MB) — harmonizado com includes/upload.php (CJ-08)
+LimitRequestBody 62914560
 
 # 4. Bloquear leitura direta de ficheiros confidenciais (.env, .git, .htaccess)
 <FilesMatch "^\.">

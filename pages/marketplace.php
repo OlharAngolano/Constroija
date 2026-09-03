@@ -10,9 +10,9 @@ middleware_require_auth();
 $user = current_user();
 $db = db();
 
-// Buscar estado mais atualizado do utilizador
+// Buscar estado mais atualizado do utilizador (DTO seguro — sem tokens)
 $profile = $db->fetch("SELECT * FROM profiles WHERE id = ?", [$user['id']]);
-$_SESSION['user'] = $profile; // Sincroniza a sessão
+$_SESSION['user'] = user_session_dto($profile); // Sincroniza a sessão (CJ-04)
 
 $now = new DateTime();
 $expiresAt = $profile['subscription_expires_at'] ? new DateTime($profile['subscription_expires_at']) : null;

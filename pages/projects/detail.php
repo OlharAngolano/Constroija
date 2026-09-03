@@ -78,7 +78,6 @@ if ($budget <= 0.00) {
         // Fallback silenciando
     }
 }
-$spentPercent = $budget > 0 ? min(100, ($totalSpent / $budget) * 100) : 0;
 
 // Tratar imagem de capa
 $cover = $project['cover_image_url'] ? APP_URL . '/' . $project['cover_image_url'] : 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=1200&auto=format&fit=crop';
@@ -680,6 +679,7 @@ function confirmDeleteProject() {
         try {
             await App.delete('/api/projects/delete', {
                 project_id: <?php echo $projectId; ?>,
+                confirm: 1,
                 _token: App.csrfToken
             });
             App.showToast('Obra eliminada com sucesso.', 'success');

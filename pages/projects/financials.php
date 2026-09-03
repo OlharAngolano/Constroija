@@ -333,9 +333,11 @@ if ($budget <= 0.00) {
     }
 }
 
-$spentPercent = $budget > 0 ? min(100, ($totalSpent / $budget) * 100) : 0;
-$remainingBudget = max(0.00, $budget - $totalSpent);
-$cashBalance = max(0.00, $totalFunds - $totalSpent);
+// (§5) Valores reais: a derrapagem e o saldo negativo não ficam escondidos
+// (apenas as barras visuais são limitadas a 100%)
+$spentPercent = $budget > 0 ? ($totalSpent / $budget) * 100 : 0.00;
+$remainingBudget = $budget - $totalSpent;
+$cashBalance = $totalFunds - $totalSpent;
 
 // Nomes traduzidos de despesas
 $typeTranslations = [
